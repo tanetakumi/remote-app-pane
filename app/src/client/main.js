@@ -3,6 +3,7 @@ import { request } from './core/api.js';
 import { webpSupported } from './core/webp.js';
 import { openRemoteSession } from './core/remote-session.js';
 import { createTextInput } from './input/text-input.js';
+import { createSpecialKeys } from './input/special-keys.js';
 import { createSettingsDialog } from './ui/settings-dialog.js';
 
 const $ = id => document.getElementById(id);
@@ -22,6 +23,10 @@ let generation = 0;
 let active = false;
 let configuredCredentials = false;
 const textInput = createTextInput((text, enter) => remote.sendText(text, enter));
+const specialKeys = createSpecialKeys(keysyms => {
+  remote?.sendKeys(keysyms);
+  remote?.focus();
+});
 createSettingsDialog(settings => {
   remote?.setPointerSpeed(settings.pointerSpeed);
   remote?.refreshSize();
@@ -45,6 +50,7 @@ function disconnect(text = '未接続', state = '') {
   remote?.close();
   remote = null;
   textInput.setConnected(false);
+  specialKeys.setConnected(false);
   active = false;
   displayContainer.replaceChildren();
   bitrate.hidden = true;
@@ -85,6 +91,7 @@ async function connect(credentials = {}) {
           status('接続済み', 'connected');
           bitrate.hidden = false;
           textInput.setConnected(true);
+          specialKeys.setConnected(true);
           for (const control of [modeButton, paneButton]) control.disabled = false;
           remote.fit();
           remote.refreshSize();

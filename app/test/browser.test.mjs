@@ -109,6 +109,19 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.keyboard.press('b');
   await page.waitForTimeout(50);
   assert.ok(received.some(parts => parts[0] === 'key' && parts[1] === '98' && parts[2] === '1'));
+  assert.equal(await page.locator('#keys-palette').isVisible(), false);
+  await page.locator('#keys-button').click();
+  assert.equal(await page.locator('#keys-palette').isVisible(), true);
+  const beforeKeys = received.length;
+  await page.locator('#key-backspace').click();
+  await page.locator('#key-shift-enter').click();
+  await page.waitForTimeout(50);
+  assert.deepEqual(received.slice(beforeKeys).filter(parts => parts[0] === 'key').map(parts => parts.slice(1)), [
+    ['65288', '1'], ['65288', '0'],
+    ['65505', '1'], ['65293', '1'], ['65293', '0'], ['65505', '0'],
+  ]);
+  await page.locator('#keys-button').click();
+  assert.equal(await page.locator('#keys-palette').isVisible(), false);
   // The desktop is requested at twice the viewer width; one half is shown at a time.
   assert.deepEqual(received.filter(parts => parts[0] === 'size').at(-1).slice(1), ['3072', '1020']);
   const viewerCenter = async target => {

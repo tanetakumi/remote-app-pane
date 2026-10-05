@@ -115,6 +115,13 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
     setPointerSpeed: value => { pointerSpeed = value; },
     focus: () => element.focus({ preventScroll: true }),
     reset,
+    // Presses keys in order and releases them in reverse, so Shift wraps Enter.
+    sendKeys(keysyms) {
+      if (closed || !connected) return;
+      keyboard.reset();
+      for (const keysym of keysyms) session.sendKeyEvent(1, keysym);
+      for (const keysym of [...keysyms].reverse()) session.sendKeyEvent(0, keysym);
+    },
     async sendText(text, enter = false) {
       requireConnection();
       keyboard.reset();
