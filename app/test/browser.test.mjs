@@ -182,6 +182,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   assert.equal(await page.evaluate(() => document.activeElement.id), 'settings-dialog');
   await page.waitForFunction(() => !document.getElementById('settings-save').disabled);
   assert.equal(await settingsHeight(), loadingHeight);
+  assert.equal(await page.locator('#settings-long-press-value').textContent(), '700 ms');
   // The bar position applies at once and only reorders the layout: no resize reaches the desktop.
   await page.locator('#settings-bar-bottom').check();
   const barBelow = await box('#top-bar');

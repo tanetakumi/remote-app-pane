@@ -122,6 +122,12 @@
       <p id="settings-scroll-acceleration-description">速いスワイプほど多くスクロールします。0 で加速なし。この端末だけの設定で、すぐ反映します。</p>
     </div>
     <div class="settings-field">
+      <label for="settings-long-press">長押し時間</label>
+      <output id="settings-long-press-value" for="settings-long-press"></output>
+      <input id="settings-long-press" type="range" min="300" max="1500" step="50" aria-describedby="settings-long-press-description" />
+      <p id="settings-long-press-description">マウスモードで、指を止めて右クリックになるまでの時間。この端末だけの設定で、すぐ反映します。</p>
+    </div>
+    <div class="settings-field">
       <label for="settings-bar-bottom">バーを下に表示</label>
       <input id="settings-bar-bottom" type="checkbox" aria-describedby="settings-bar-description" />
       <p id="settings-bar-description">この端末だけの設定で、チェックするとすぐ反映します。接続には影響しません。</p>

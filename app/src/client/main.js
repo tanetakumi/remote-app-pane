@@ -29,7 +29,7 @@ const specialKeys = createSpecialKeys(keysyms => {
   remote?.sendKeys(keysyms);
   remote?.focus();
 });
-const scroll = createSettingsDialog(settings => {
+const touchSettings = createSettingsDialog(settings => {
   remote?.setPointerSpeed(settings.pointerSpeed);
   remote?.refreshSize();
 });
@@ -84,7 +84,7 @@ async function connect(credentials = {}) {
     credentials = null;
     if (generation !== current) return;
     remote = openRemoteSession({
-      ticket, container: displayContainer, viewer, touchMode, pointerSpeed, scroll, pane,
+      ticket, container: displayContainer, viewer, touchMode, pointerSpeed, touchSettings, pane,
       isCurrent: () => generation === current,
       onBitrate: kbps => showBitrate(Number(kbps)),
       onError: error => {

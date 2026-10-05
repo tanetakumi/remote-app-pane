@@ -1,8 +1,8 @@
 import { request } from '../core/api.js';
 
 // Load on open, edit locally, and persist only when Save is pressed.
-// The bar position and scroll feel are per device: they apply and are remembered immediately, without Save.
-// Returns the live scroll settings for the touch input.
+// The bar position and touch feel are per device: they apply and are remembered immediately, without Save.
+// Returns the live touch settings, keyed like their localStorage entries.
 export function createSettingsDialog(onSaved) {
   const $ = id => document.getElementById(id);
   const dialog = $('settings-dialog');
@@ -27,21 +27,22 @@ export function createSettingsDialog(onSaved) {
     compression.value = settings.websocketCompressionLevel;
     values();
   };
-  const scroll = {
-    sensitivity: Number(localStorage.getItem('scrollSensitivity') ?? 1),
-    acceleration: Number(localStorage.getItem('scrollAcceleration') ?? 1),
-  };
-  const scrollFields = [
-    [$('settings-scroll-sensitivity'), 'sensitivity', 'scrollSensitivity', $('settings-scroll-sensitivity-value')],
-    [$('settings-scroll-acceleration'), 'acceleration', 'scrollAcceleration', $('settings-scroll-acceleration-value')],
+  const touchSettings = {};
+  const touchFields = [
+    ['scrollSensitivity', 1, 'settings-scroll-sensitivity', '×'],
+    ['scrollAcceleration', 1, 'settings-scroll-acceleration', '×'],
+    ['longPressMs', 700, 'settings-long-press', ' ms'],
   ];
-  for (const [input, key, storageKey, output] of scrollFields) {
-    input.value = scroll[key];
-    output.textContent = `${input.value}×`;
+  for (const [key, fallback, id, unit] of touchFields) {
+    const input = $(id);
+    const output = $(`${id}-value`);
+    touchSettings[key] = Number(localStorage.getItem(key) ?? fallback);
+    input.value = touchSettings[key];
+    output.textContent = `${input.value}${unit}`;
     input.addEventListener('input', () => {
-      scroll[key] = Number(input.value);
-      output.textContent = `${input.value}×`;
-      localStorage.setItem(storageKey, input.value);
+      touchSettings[key] = Number(input.value);
+      output.textContent = `${input.value}${unit}`;
+      localStorage.setItem(key, input.value);
     });
   }
   const barBottom = $('settings-bar-bottom');
@@ -82,5 +83,5 @@ export function createSettingsDialog(onSaved) {
     busy(false);
   });
   $('close-settings').addEventListener('click', () => dialog.close());
-  return scroll;
+  return touchSettings;
 }

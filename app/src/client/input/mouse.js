@@ -1,9 +1,8 @@
 export const MOUSE_MOVE_INTERVAL_MS = 1000 / 60;
-const LONG_PRESS_MS = 500;
 const MAX_SWIPE_SPEED = 4; // px/ms; faster swipes gain no extra acceleration
 
-// `scroll` is read live: { sensitivity, acceleration } for Tap mode swipes.
-export function createTouchMouse(element, mode, onEvent, getSpeed, scroll) {
+// `settings` is read live: { scrollSensitivity, scrollAcceleration } for Tap swipes, { longPressMs } for mouse mode.
+export function createTouchMouse(element, mode, onEvent, getSpeed, settings) {
   const controller = new AbortController();
   let disposed = false;
   let touching = false;
@@ -25,7 +24,7 @@ export function createTouchMouse(element, mode, onEvent, getSpeed, scroll) {
           longPress = null;
           press.call(mouse, 'right', event);
           release.call(mouse, 'right', event);
-        }, LONG_PRESS_MS),
+        }, settings.longPressMs),
       };
     } else if (type === 'touchmove' && longPress) {
       const { clientX, clientY } = event.touches[0];
@@ -70,7 +69,7 @@ export function createTouchMouse(element, mode, onEvent, getSpeed, scroll) {
             const elapsed = event.timeStamp - swipe.lastTime;
             // Smooth the finger speed (px/ms) so one jittery event does not jump the scroll.
             if (elapsed > 0) swipe.speed = (swipe.speed + Math.abs(delta) / elapsed) / 2;
-            swipe.remainder += delta * scroll.sensitivity * (1 + scroll.acceleration * Math.min(swipe.speed, MAX_SWIPE_SPEED));
+            swipe.remainder += delta * settings.scrollSensitivity * (1 + settings.scrollAcceleration * Math.min(swipe.speed, MAX_SWIPE_SPEED));
             swipe.lastY = finger.clientY;
             swipe.lastTime = event.timeStamp;
             while (Math.abs(swipe.remainder) >= mouse.scrollThreshold) {
