@@ -58,6 +58,7 @@ async function connect(credentials = {}) {
   connectionAction('切断', 'connecting');
   status('接続中…', 'connecting');
   let lastError = '';
+  let wasConnected = false;
   try {
     const webp = await webpSupported;
     if (generation !== current) return;
@@ -76,6 +77,7 @@ async function connect(credentials = {}) {
       },
       onState: state => {
         if (state === 3) {
+          wasConnected = true;
           connectionAction('切断', 'connected');
           status('接続済み', 'connected');
           bitrate.hidden = false;
@@ -84,7 +86,11 @@ async function connect(credentials = {}) {
           remote.fit();
           remote.refreshSize();
           remote.focus();
-        } else if (state === 5) disconnect(lastError || '切断されました', lastError ? 'error' : '');
+        } else if (state === 5) {
+          disconnect(lastError || '切断されました', lastError ? 'error' : '');
+          // Rejoin the retained RDP once; a failure before connecting is not retried.
+          if (wasConnected) restore();
+        }
       },
     });
   } catch (error) {
@@ -140,9 +146,13 @@ $('connect-form').addEventListener('submit', event => {
 window.addEventListener('blur', () => remote?.reset());
 window.addEventListener('pagehide', () => disconnect());
 new ResizeObserver(() => remote?.fit()).observe(viewer);
-const restore = () => request('/api/status').then(result => {
-  configuredCredentials = result.configuredCredentials;
-  if (result.retained) return connect();
-}).catch(error => status(error.message, 'error')).finally(() => { button.disabled = false; });
-window.addEventListener('pageshow', event => { if (event.persisted) restore(); });
+function restore() {
+  return request('/api/status').then(result => {
+    configuredCredentials = result.configuredCredentials;
+    if (result.retained) return connect();
+  }).catch(error => status(error.message, 'error')).finally(() => { button.disabled = false; });
+}
+const rejoin = () => { if (!active) restore(); };
+window.addEventListener('pageshow', event => { if (event.persisted) rejoin(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) rejoin(); });
 restore();

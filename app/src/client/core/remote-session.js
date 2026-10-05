@@ -89,7 +89,9 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
     session.sendSize(width, height);
   }, () => document.getElementById('text-dialog').open);
   display.onresize = fit;
-  session.onerror = tunnel.onerror = error => { if (isCurrent()) onError(error); };
+  session.onerror = error => { if (isCurrent()) onError(error); };
+  // A dropped WebSocket must also end the session so the page learns it is disconnected.
+  tunnel.onerror = error => { session.onerror(error); session.disconnect(); };
   session.onstatechange = state => {
     connected = state === Guacamole.Client.State.CONNECTED;
     if (isCurrent()) onState(state);

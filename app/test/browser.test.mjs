@@ -252,11 +252,38 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   assert.equal((await (await savedContext.request.get(`http://127.0.0.1:${server.address().port}/api/status`)).json()).retained, true);
   savedPage = await savedContext.newPage();
   savedPage.on('pageerror', error => errors.push(error.message));
+  await savedPage.addInitScript(() => {
+    window.tunnels = [];
+    const Native = window.WebSocket;
+    window.WebSocket = class extends Native { constructor(...args) { super(...args); window.tunnels.push(this); } };
+  });
   await savedPage.goto(`http://127.0.0.1:${server.address().port}`);
   await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
   await savedPage.waitForFunction(() => document.querySelector('#display canvas')
     .getContext('2d').getImageData(10, 10, 1, 1).data[0] >= 250);
   assert.equal(received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length, rdpConnections);
+  // A WebSocket that closes unexpectedly rejoins the retained RDP without a button press.
+  const joins = () => received.filter(parts => parts[0] === 'select' && parts[1] === '$browser-test').length;
+  const until = async check => {
+    for (let i = 0; i < 100 && !check(); i++) await new Promise(done => setTimeout(done, 50));
+    assert.ok(check());
+  };
+  let joined = joins();
+  await savedPage.evaluate(() => window.tunnels.at(-1).close());
+  await until(() => joins() > joined);
+  await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
+  assert.equal(received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length, rdpConnections);
+  // If the server is unreachable the header returns to 接続; becoming visible again rejoins.
+  await savedPage.route('**/api/status', route => route.abort());
+  joined = joins();
+  await savedPage.evaluate(() => window.tunnels.at(-1).close());
+  await savedPage.waitForFunction(() => document.getElementById('connection-button').dataset.state === 'disconnected');
+  await savedPage.waitForTimeout(200);
+  assert.equal(joins(), joined);
+  await savedPage.unroute('**/api/status');
+  await savedPage.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await until(() => joins() > joined);
+  await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
   await savedPage.locator('#connection-button').click();
   await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '未接続');
   assert.equal((await (await savedContext.request.get(`http://127.0.0.1:${server.address().port}/api/status`)).json()).retained, false);
