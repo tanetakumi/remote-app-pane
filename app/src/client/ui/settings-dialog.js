@@ -1,6 +1,7 @@
 import { request } from '../core/api.js';
 
 // Load on open, edit locally, and persist only when Save is pressed.
+// The bar position is per device: it applies and is remembered immediately, without Save.
 export function createSettingsDialog(onSaved) {
   const $ = id => document.getElementById(id);
   const dialog = $('settings-dialog');
@@ -25,16 +26,25 @@ export function createSettingsDialog(onSaved) {
     compression.value = settings.websocketCompressionLevel;
     values();
   };
+  const barBottom = $('settings-bar-bottom');
+  const placeBar = () => { $('app').dataset.bar = barBottom.checked ? 'bottom' : 'top'; };
   const busy = value => { for (const control of controls) control.disabled = value; };
   $('settings-button').addEventListener('click', async () => {
     busy(true);
     message('読み込み中…');
     dialog.showModal();
+    dialog.focus();
     try {
       apply(await request('/api/settings'));
       busy(false);
       message('');
     } catch (error) { message(error.message, true); }
+  });
+  barBottom.checked = localStorage.getItem('barPosition') === 'bottom';
+  placeBar();
+  barBottom.addEventListener('change', () => {
+    placeBar();
+    localStorage.setItem('barPosition', $('app').dataset.bar);
   });
   scale.addEventListener('input', values);
   speed.addEventListener('input', values);
@@ -49,7 +59,7 @@ export function createSettingsDialog(onSaved) {
       }, 'PUT');
       apply(saved);
       onSaved(saved);
-      message('保存しました。解像度倍率とポインタ速度は現在の画面に、圧縮の変更は次の画面接続から反映されます。');
+      message('保存しました');
     } catch (error) { message(error.message, true); }
     busy(false);
   });

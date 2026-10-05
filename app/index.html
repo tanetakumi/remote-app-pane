@@ -84,7 +84,7 @@
       <button id="send-text-enter" type="button" disabled>送信＋Enter</button>
     </div>
   </dialog>
-  <dialog id="settings-dialog" aria-labelledby="settings-title">
+  <dialog id="settings-dialog" aria-labelledby="settings-title" tabindex="-1">
     <div class="settings-header">
       <h1 id="settings-title">設定</h1>
       <button id="close-settings" class="dismiss-button" type="button" aria-label="設定を閉じる" title="閉じる">
@@ -94,23 +94,30 @@
     <div class="settings-field">
       <label for="settings-scale">解像度倍率</label>
       <output id="settings-scale-value" for="settings-scale"></output>
-      <p id="settings-scale-description">高くすると文字が小さくなり、広い範囲が見えます。</p>
       <input id="settings-scale" type="range" min="0.5" max="4" step="0.1" aria-describedby="settings-scale-description" disabled />
+      <p id="settings-scale-description">高いほど文字は小さく、広い範囲が見えます。</p>
     </div>
     <div class="settings-field">
       <label for="settings-speed">ポインタ速度</label>
       <output id="settings-speed-value" for="settings-speed"></output>
-      <p id="settings-speed-description">マウスモードでカーソルを動かす速さです。1 が標準です。</p>
       <input id="settings-speed" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-speed-description" disabled />
+      <p id="settings-speed-description">マウスモードでの移動の速さ。1 が標準です。</p>
     </div>
     <div class="settings-field">
       <label for="settings-compression">WebSocket 圧縮レベル</label>
       <output id="settings-compression-value" for="settings-compression"></output>
-      <p id="settings-compression-description">0 は圧縮無効。高い値ほど圧縮を強くしますが、処理負荷も増えます。</p>
       <input id="settings-compression" type="range" min="0" max="9" step="1" aria-describedby="settings-compression-description" disabled />
+      <p id="settings-compression-description">0 は無効。高いほど強く圧縮しますが負荷も増えます。次の接続から反映します。</p>
     </div>
-    <button id="settings-save" type="button" disabled>保存</button>
-    <p id="settings-status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="settings-field">
+      <label for="settings-bar-bottom">バーを下に表示</label>
+      <input id="settings-bar-bottom" type="checkbox" aria-describedby="settings-bar-description" />
+      <p id="settings-bar-description">この端末だけの設定で、チェックするとすぐ反映します。接続には影響しません。</p>
+    </div>
+    <div class="settings-footer">
+      <p id="settings-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <button id="settings-save" type="button" disabled>保存</button>
+    </div>
   </dialog>
   <script type="module" src="/src/client/main.js"></script>
 </body>
