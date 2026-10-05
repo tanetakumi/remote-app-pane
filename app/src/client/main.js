@@ -13,8 +13,8 @@ const connectionState = $('connection-state');
 const displayContainer = $('display');
 const bitrate = $('bitrate-pill');
 const bitrateValue = $('bitrate-value');
-const modeButtons = [...$('touch-mode').querySelectorAll('button')];
-const paneButtons = [...$('pane-switch').querySelectorAll('button')];
+const modeButton = $('mode-button');
+const paneButton = $('pane-button');
 let touchMode = 'relative';
 let pane = 0;
 let remote = null;
@@ -50,7 +50,7 @@ function disconnect(text = '未接続', state = '') {
   bitrate.hidden = true;
   bitrateValue.textContent = '0';
   connectionAction('接続', 'disconnected');
-  for (const control of [...modeButtons, ...paneButtons]) control.disabled = true;
+  for (const control of [modeButton, paneButton]) control.disabled = true;
   button.disabled = false;
   status(text, state);
 }
@@ -85,7 +85,7 @@ async function connect(credentials = {}) {
           status('接続済み', 'connected');
           bitrate.hidden = false;
           textInput.setConnected(true);
-          for (const control of [...modeButtons, ...paneButtons]) control.disabled = false;
+          for (const control of [modeButton, paneButton]) control.disabled = false;
           remote.fit();
           remote.refreshSize();
           remote.focus();
@@ -119,24 +119,23 @@ button.addEventListener('click', async () => {
   } else if (configuredCredentials) connect();
   else dialog.showModal();
 });
-for (const modeButton of modeButtons) {
-  modeButton.addEventListener('click', () => {
-    const mode = modeButton.dataset.mode;
-    if (mode === touchMode) return;
-    touchMode = mode;
-    remote?.setTouchMode(mode);
-    for (const item of modeButtons) item.setAttribute('aria-pressed', String(item.dataset.mode === mode));
-    remote?.focus();
-  });
+function toggle(button, value, label) {
+  button.dataset.value = value;
+  button.setAttribute('aria-label', label);
+  button.title = label;
 }
-for (const paneButton of paneButtons) {
-  paneButton.addEventListener('click', () => {
-    pane = Number(paneButton.dataset.pane);
-    remote?.setPane(pane);
-    for (const item of paneButtons) item.setAttribute('aria-pressed', String(item === paneButton));
-    remote?.focus();
-  });
-}
+modeButton.addEventListener('click', () => {
+  touchMode = touchMode === 'relative' ? 'direct' : 'relative';
+  toggle(modeButton, touchMode, touchMode === 'relative' ? 'マウス：指を滑らせてカーソル移動（タップでTapに切替）' : 'Tap：画面を直接操作（タップでマウスに切替）');
+  remote?.setTouchMode(touchMode);
+  remote?.focus();
+});
+paneButton.addEventListener('click', () => {
+  pane = 1 - pane;
+  toggle(paneButton, pane, pane ? '右半分を表示中（タップで左半分に切替）' : '左半分を表示中（タップで右半分に切替）');
+  remote?.setPane(pane);
+  remote?.focus();
+});
 $('cancel').addEventListener('click', () => dialog.close());
 dialog.addEventListener('close', () => { $('password').value = ''; });
 $('connect-form').addEventListener('submit', event => {

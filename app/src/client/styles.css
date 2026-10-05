@@ -64,10 +64,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 @keyframes power-pulse { 50% { opacity: .45; } }
 #text-button:focus-visible { outline-color: var(--text-primary); }
 #text-button[aria-expanded="true"] { background: var(--color-primary); border-color: var(--color-primary); }
-.segmented { display: flex; align-items: center; gap: 4px; padding: 2px; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--bg-glass-input); }
-.segmented button { border-color: transparent; background: transparent; color: var(--text-secondary); font-weight: 600; }
-.segmented button[aria-pressed="true"] { background: #4f46e5; color: var(--text-primary); box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
-.segmented button[aria-pressed="true"]:active:not(:disabled) { background: #4338ca; }
+.toggle { position: relative; }
+.toggle > * { position: absolute; display: grid; place-items: center; pointer-events: none; }
+.toggle > [data-option] { right: 4px; bottom: 3px; width: 12px; height: 12px; font-size: .6rem; font-weight: 600; opacity: .55; }
+.toggle[data-value="0"] > [data-option="0"], .toggle[data-value="1"] > [data-option="1"], .toggle[data-value="direct"] > [data-option="direct"], .toggle[data-value="relative"] > [data-option="relative"] {
+  inset: 0; width: auto; height: auto; font-size: 1.15rem; opacity: 1;
+}
+#top-bar .toggle > svg[data-option] { width: 12px; height: 12px; stroke-width: 2.4; }
+#top-bar .toggle[data-value="direct"] > svg[data-option="direct"], #top-bar .toggle[data-value="relative"] > svg[data-option="relative"] { margin: auto; width: 20px; height: 20px; stroke-width: 2; }
 #viewer { position: relative; min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center; background: #000; }
 #connection-state {
   position: absolute; inset: 0; margin: auto; width: max-content; height: max-content; max-width: min(90%, 480px);
@@ -126,7 +130,6 @@ input { min-width: 0; width: 100%; padding: 10px; background: var(--bg-glass-inp
 @media (hover: hover) and (pointer: fine) {
   button:hover:not(:disabled) { background: var(--bg-surface-elevated); border-color: var(--border-hover); }
   #connection-button:hover:not(:disabled) { background: color-mix(in srgb, var(--power) 24%, transparent); border-color: color-mix(in srgb, var(--power) 60%, transparent); }
-  .segmented button[aria-pressed="true"]:hover:not(:disabled) { background: #4338ca; border-color: transparent; }
   #connect:hover:not(:disabled), #send-text:hover:not(:disabled), #send-text-enter:hover:not(:disabled) { background: var(--color-primary-hover); }
   #text-dialog .dismiss-button:hover { background: transparent; color: var(--text-primary); }
   .dismiss-button:hover::before { background: var(--bg-surface-elevated); }
@@ -134,13 +137,6 @@ input { min-width: 0; width: 100%; padding: 10px; background: var(--bg-glass-inp
 @media (prefers-reduced-motion: reduce) {
   #connection-button[data-state="connecting"], #connection-state.connecting { animation: none; }
 }
-@media (max-width: 420px) {
-  #top-bar { gap: 4px; padding-left: calc(env(safe-area-inset-left, 0px) + 4px); padding-right: calc(env(safe-area-inset-right, 0px) + 4px); }
-  #top-bar-actions { gap: 4px; }
-  #top-bar button { width: 32px; min-width: 32px; flex-basis: 32px; }
-  .segmented { gap: 2px; }
-}
-
 #settings-button[aria-expanded="true"] { background: var(--color-primary); border-color: var(--color-primary); }
 #settings-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 16px; overflow: auto; }
 #settings-dialog[open] { display: flex; flex-direction: column; gap: 16px; }

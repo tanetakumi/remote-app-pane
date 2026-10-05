@@ -121,12 +121,12 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
     await page.waitForTimeout(50);
     return received.slice(beforeClick).find(parts => parts[0] === 'mouse' && parts[3] === '1');
   };
-  assert.equal(await page.locator('#pane-switch button[aria-pressed="true"]').textContent(), '1');
+  assert.equal(await page.locator('#pane-button').getAttribute('data-value'), '0');
   assert.ok(Math.abs(Number((await clickViewerCenter())[1]) - 768) < 3);
-  await page.locator('#pane-switch button[data-pane="1"]').click();
-  assert.equal(await page.locator('#pane-switch button[aria-pressed="true"]').textContent(), '2');
+  await page.locator('#pane-button').click();
+  assert.equal(await page.locator('#pane-button').getAttribute('data-value'), '1');
   assert.ok(Math.abs(Number((await clickViewerCenter())[1]) - 2304) < 3);
-  await page.locator('#pane-switch button[data-pane="0"]').click();
+  await page.locator('#pane-button').click();
   assert.ok(Math.abs(Number((await clickViewerCenter())[1]) - 768) < 3);
   const waitForSize = async (width, height) => {
     await page.waitForFunction(([w, h]) => {
