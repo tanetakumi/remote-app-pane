@@ -50,7 +50,7 @@ body { overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
 }
 #bitrate-pill[hidden] { display: none; }
 #bitrate-value { min-width: 4ch; text-align: center; }
-.bitrate-unit { font-size: .6rem; }
+#bitrate-unit { font-size: .6rem; }
 #top-bar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 button, input, textarea { font: inherit; color: inherit; border: 1px solid var(--border-subtle); border-radius: 10px; }
 button {

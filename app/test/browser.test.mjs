@@ -101,7 +101,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   assert.ok(received.some(parts => parts[0] === 'select' && parts[1] === '$browser-test'));
   assert.equal(await page.locator('#credentials-dialog').isVisible(), false);
   assert.equal(await page.locator('#bitrate-pill').isVisible(), true);
-  assert.equal(await page.locator('.bitrate-unit').textContent(), 'kbps');
+  assert.match(await page.locator('#bitrate-unit').textContent(), /^[kM]bps$/);
   await page.waitForFunction(() => Number(document.getElementById('bitrate-value').textContent) > 0);
   assert.equal(await page.locator('#password').inputValue(), '');
   assert.equal(await page.locator('#credentials-dialog').isVisible(), false);
@@ -262,7 +262,8 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   assert.equal(await page.locator('#connection-state').isVisible(), true);
   assert.equal(await page.locator('#display > div').count(), 0);
   assert.equal(await page.locator('#bitrate-pill').isVisible(), false);
-  assert.equal(await page.locator('#bitrate-value').textContent(), '0');
+  assert.equal(await page.locator('#bitrate-value').textContent(), '0.0');
+  assert.equal(await page.locator('#bitrate-unit').textContent(), 'kbps');
   await connect();
   await page.locator('#connection-button').click();
   await page.waitForFunction(() => document.getElementById('connection-state').textContent === '未接続');

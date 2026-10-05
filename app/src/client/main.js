@@ -2,6 +2,7 @@ import './styles.css';
 import { request } from './core/api.js';
 import { webpSupported } from './core/webp.js';
 import { openRemoteSession } from './core/remote-session.js';
+import { formatBitrate } from './core/bitrate.js';
 import { createTextInput } from './input/text-input.js';
 import { createSpecialKeys } from './input/special-keys.js';
 import { createSettingsDialog } from './ui/settings-dialog.js';
@@ -14,6 +15,7 @@ const connectionState = $('connection-state');
 const displayContainer = $('display');
 const bitrate = $('bitrate-pill');
 const bitrateValue = $('bitrate-value');
+const bitrateUnit = $('bitrate-unit');
 const modeButton = $('mode-button');
 const paneButton = $('pane-button');
 let touchMode = 'relative';
@@ -45,6 +47,11 @@ function status(text, state = '') {
   connectionState.title = text;
   connectionState.className = state;
 }
+
+function showBitrate(kbps) {
+  [bitrateValue.textContent, bitrateUnit.textContent] = formatBitrate(kbps);
+}
+
 function disconnect(text = '未接続', state = '') {
   generation++;
   remote?.close();
@@ -54,7 +61,7 @@ function disconnect(text = '未接続', state = '') {
   active = false;
   displayContainer.replaceChildren();
   bitrate.hidden = true;
-  bitrateValue.textContent = '0';
+  showBitrate(0);
   connectionAction('接続', 'disconnected');
   for (const control of [modeButton, paneButton]) control.disabled = true;
   button.disabled = false;
@@ -79,7 +86,7 @@ async function connect(credentials = {}) {
     remote = openRemoteSession({
       ticket, container: displayContainer, viewer, touchMode, pointerSpeed, pane,
       isCurrent: () => generation === current,
-      onBitrate: value => { bitrateValue.textContent = value; },
+      onBitrate: kbps => showBitrate(Number(kbps)),
       onError: error => {
         lastError = `${error.message || 'RDP 接続に失敗しました。'} (${error.code})`;
         status(lastError, 'error');
