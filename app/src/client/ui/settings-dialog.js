@@ -1,7 +1,8 @@
 import { request } from '../core/api.js';
 
 // Load on open, edit locally, and persist only when Save is pressed.
-// The bar position is per device: it applies and is remembered immediately, without Save.
+// The bar position and scroll feel are per device: they apply and are remembered immediately, without Save.
+// Returns the live scroll settings for the touch input.
 export function createSettingsDialog(onSaved) {
   const $ = id => document.getElementById(id);
   const dialog = $('settings-dialog');
@@ -26,6 +27,23 @@ export function createSettingsDialog(onSaved) {
     compression.value = settings.websocketCompressionLevel;
     values();
   };
+  const scroll = {
+    sensitivity: Number(localStorage.getItem('scrollSensitivity') ?? 1),
+    acceleration: Number(localStorage.getItem('scrollAcceleration') ?? 1),
+  };
+  const scrollFields = [
+    [$('settings-scroll-sensitivity'), 'sensitivity', 'scrollSensitivity', $('settings-scroll-sensitivity-value')],
+    [$('settings-scroll-acceleration'), 'acceleration', 'scrollAcceleration', $('settings-scroll-acceleration-value')],
+  ];
+  for (const [input, key, storageKey, output] of scrollFields) {
+    input.value = scroll[key];
+    output.textContent = `${input.value}×`;
+    input.addEventListener('input', () => {
+      scroll[key] = Number(input.value);
+      output.textContent = `${input.value}×`;
+      localStorage.setItem(storageKey, input.value);
+    });
+  }
   const barBottom = $('settings-bar-bottom');
   const placeBar = () => { $('app').dataset.bar = barBottom.checked ? 'bottom' : 'top'; };
   const busy = value => { for (const control of controls) control.disabled = value; };
@@ -64,4 +82,5 @@ export function createSettingsDialog(onSaved) {
     busy(false);
   });
   $('close-settings').addEventListener('click', () => dialog.close());
+  return scroll;
 }

@@ -5,7 +5,7 @@ const Guacamole = window.Guacamole;
 
 // Opens a Guacamole client in `container`, scaled so one half of the desktop fits `viewer`.
 // Callbacks are skipped once isCurrent() turns false.
-export function openRemoteSession({ ticket, container, viewer, touchMode = 'relative', pointerSpeed = 1, pane = 0, isCurrent, onBitrate, onError, onState }) {
+export function openRemoteSession({ ticket, container, viewer, touchMode = 'relative', pointerSpeed = 1, scroll, pane = 0, isCurrent, onBitrate, onError, onState }) {
   let closed = false;
   let connected = false;
   const tunnel = new Guacamole.WebSocketTunnel('/tunnel');
@@ -55,7 +55,7 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
       mouse.currentState.y = event.state.y;
       display.showCursor(touchMode === 'relative');
       send(event);
-    }, () => pointerSpeed);
+    }, () => pointerSpeed, scroll);
     syncTouchPosition();
     display.showCursor(touchMode === 'relative');
   };

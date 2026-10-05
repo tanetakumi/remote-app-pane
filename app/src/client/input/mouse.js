@@ -1,7 +1,9 @@
 export const MOUSE_MOVE_INTERVAL_MS = 1000 / 60;
 const LONG_PRESS_MS = 500;
+const MAX_SWIPE_SPEED = 4; // px/ms; faster swipes gain no extra acceleration
 
-export function createTouchMouse(element, mode, onEvent, getSpeed) {
+// `scroll` is read live: { sensitivity, acceleration } for Tap mode swipes.
+export function createTouchMouse(element, mode, onEvent, getSpeed, scroll) {
   const controller = new AbortController();
   let disposed = false;
   let touching = false;
@@ -42,7 +44,7 @@ export function createTouchMouse(element, mode, onEvent, getSpeed) {
           const finger = event.touches[0];
           swipe = event.touches.length === 1 && !mouse.currentState.left ? {
             id: finger.identifier, x: finger.clientX, y: finger.clientY,
-            lastY: finger.clientY, remainder: 0, scrolling: false,
+            lastY: finger.clientY, lastTime: event.timeStamp, speed: 0, remainder: 0, scrolling: false,
           } : null;
         }
         if (mode === 'relative') trackLongPress(type, event);
@@ -58,12 +60,19 @@ export function createTouchMouse(element, mode, onEvent, getSpeed) {
           event.preventDefault();
           if (!swipe.scrolling && Math.hypot(finger.clientX - swipe.x, finger.clientY - swipe.y) >= mouse.clickMoveThreshold) {
             swipe.scrolling = true;
+            // Start half a step in, so the first notch does not wait for a full threshold.
+            swipe.remainder = Math.sign(swipe.y - finger.clientY) * mouse.scrollThreshold / 2;
             // Scroll the content under the initial contact, without clicking.
             mouse.move(window.Guacamole.Position.fromClientPosition(target, swipe.x, swipe.y));
           }
           if (swipe.scrolling) {
-            swipe.remainder += swipe.lastY - finger.clientY;
+            const delta = swipe.lastY - finger.clientY;
+            const elapsed = event.timeStamp - swipe.lastTime;
+            // Smooth the finger speed (px/ms) so one jittery event does not jump the scroll.
+            if (elapsed > 0) swipe.speed = (swipe.speed + Math.abs(delta) / elapsed) / 2;
+            swipe.remainder += delta * scroll.sensitivity * (1 + scroll.acceleration * Math.min(swipe.speed, MAX_SWIPE_SPEED));
             swipe.lastY = finger.clientY;
+            swipe.lastTime = event.timeStamp;
             while (Math.abs(swipe.remainder) >= mouse.scrollThreshold) {
               const down = swipe.remainder > 0;
               mouse.click(down ? 'down' : 'up');

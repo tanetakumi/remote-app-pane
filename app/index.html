@@ -110,6 +110,18 @@
       <p id="settings-compression-description">0 は無効。高いほど強く圧縮しますが負荷も増えます。次の接続から反映します。</p>
     </div>
     <div class="settings-field">
+      <label for="settings-scroll-sensitivity">スクロール感度</label>
+      <output id="settings-scroll-sensitivity-value" for="settings-scroll-sensitivity"></output>
+      <input id="settings-scroll-sensitivity" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-scroll-sensitivity-description" />
+      <p id="settings-scroll-sensitivity-description">Tap の1本指スワイプで、少ない移動でスクロールします。この端末だけの設定で、すぐ反映します。</p>
+    </div>
+    <div class="settings-field">
+      <label for="settings-scroll-acceleration">スクロール加速</label>
+      <output id="settings-scroll-acceleration-value" for="settings-scroll-acceleration"></output>
+      <input id="settings-scroll-acceleration" type="range" min="0" max="3" step="0.1" aria-describedby="settings-scroll-acceleration-description" />
+      <p id="settings-scroll-acceleration-description">速いスワイプほど多くスクロールします。0 で加速なし。この端末だけの設定で、すぐ反映します。</p>
+    </div>
+    <div class="settings-field">
       <label for="settings-bar-bottom">バーを下に表示</label>
       <input id="settings-bar-bottom" type="checkbox" aria-describedby="settings-bar-description" />
       <p id="settings-bar-description">この端末だけの設定で、チェックするとすぐ反映します。接続には影響しません。</p>

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { createTouchMouse } from '../src/client/input/mouse.js';
 
-function setup(mode, speed = () => 1) {
+function setup(mode, speed = () => 1, scroll = { sensitivity: 1, acceleration: 0 }) {
   // Guacamole's single-finger acceleration reads the clock; pin it for exact deltas.
   const clock = { now: 0 };
   const sandbox = { window: { devicePixelRatio: 1, setTimeout: (...args) => setTimeout(...args), clearTimeout: id => clearTimeout(id) }, document: {}, Date: class { getTime() { return clock.now; } } };
@@ -18,10 +18,10 @@ function setup(mode, speed = () => 1) {
   const events = [];
   createTouchMouse(element, mode, event => events.push({
     type: event.type, right: event.state.right, up: event.state.up, down: event.state.down, x: event.state.x, y: event.state.y,
-  }), speed);
+  }), speed, scroll);
   const touch = (type, ys, xs = ys.map((_, identifier) => 100 + identifier * 50)) => {
     const touches = ys.map((y, identifier) => ({ identifier, clientX: xs[identifier], clientY: y }));
-    for (const listener of listeners[type] ?? []) listener({ touches, changedTouches: touches, preventDefault() {} });
+    for (const listener of listeners[type] ?? []) listener({ touches, changedTouches: touches, timeStamp: clock.now, preventDefault() {} });
   };
   return { events, touch, clock };
 }
@@ -96,4 +96,25 @@ test('mouse mode right-clicks on a long press, not on a two-finger tap', () => {
   } finally {
     mock.timers.reset();
   }
+});
+
+test('one-finger swipe in Tap mode scrolls before a full threshold of movement', () => {
+  const { events, touch } = setup('direct');
+  touch('touchstart', [100], [100]);
+  touch('touchmove', [112], [100]);
+  assert.deepEqual(events.filter(event => event.type === 'mousedown').map(event => [event.up, event.down]), [[true, false]]);
+});
+
+test('Tap scroll distance follows sensitivity and finger speed', () => {
+  const notches = scroll => {
+    const { events, touch, clock } = setup('direct', () => 1, scroll);
+    touch('touchstart', [100], [100]);
+    clock.now = scroll.ms;
+    touch('touchmove', [160], [100]);
+    return events.filter(event => event.type === 'mousedown').length;
+  };
+  const steady = { sensitivity: 1, acceleration: 0, ms: 600 };
+  assert.equal(notches({ ...steady, sensitivity: 2 }) > notches(steady), true);
+  assert.equal(notches({ ...steady, acceleration: 1, ms: 20 }) > notches({ ...steady, ms: 20 }), true);
+  assert.equal(notches({ ...steady, acceleration: 1 }), notches(steady));
 });
