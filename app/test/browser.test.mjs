@@ -120,8 +120,33 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
     ['65288', '1'], ['65288', '0'],
     ['65505', '1'], ['65293', '1'], ['65293', '0'], ['65505', '0'],
   ]);
+  const box = selector => page.locator(selector).boundingBox();
+  const keyCount = () => received.filter(parts => parts[0] === 'key').length;
+  const keysBeforeDrag = keyCount();
+  const drag = async (dx, dy) => {
+    const handle = await box('#keys-move');
+    const [x, y] = [handle.x + handle.width / 2, handle.y + handle.height / 2];
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx, y + dy, { steps: 4 });
+    await page.mouse.up();
+  };
+  const initial = await box('#keys-palette');
+  await drag(-200, 150);
+  const moved = await box('#keys-palette');
+  assert.equal(Math.round(moved.x - initial.x), -200);
+  assert.equal(Math.round(moved.y - initial.y), 150);
+  await drag(-5000, 5000);
+  const clamped = await box('#keys-palette');
+  const viewer = await box('#viewer');
+  assert.equal(Math.round(clamped.x - viewer.x), 8);
+  assert.equal(Math.round(viewer.y + viewer.height - clamped.y - clamped.height), 8);
+  assert.equal(keyCount(), keysBeforeDrag);
   await page.locator('#keys-button').click();
   assert.equal(await page.locator('#keys-palette').isVisible(), false);
+  await page.locator('#keys-button').click();
+  assert.deepEqual(await box('#keys-palette'), clamped);
+  await page.locator('#keys-button').click();
   // The desktop is requested at twice the viewer width; one half is shown at a time.
   assert.deepEqual(received.filter(parts => parts[0] === 'size').at(-1).slice(1), ['3072', '1020']);
   const viewerCenter = async target => {

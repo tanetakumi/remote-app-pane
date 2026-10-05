@@ -38,6 +38,9 @@
     <main id="viewer" aria-label="RDP デスクトップ">
       <div id="display"></div>
       <div id="keys-palette" role="group" aria-label="特殊キー" hidden>
+        <button id="keys-move" type="button" aria-label="特殊キーの位置を移動" title="ドラッグして移動" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="5" r="1.5"/><circle cx="16" cy="5" r="1.5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="8" cy="19" r="1.5"/><circle cx="16" cy="19" r="1.5"/></svg>
+        </button>
         <button id="key-backspace" type="button" data-keys="ff08" aria-label="Backspace" title="Backspace" disabled>BS</button>
         <button id="key-shift-enter" type="button" data-keys="ffe1 ff0d" aria-label="Shift+Enter" title="Shift+Enter（改行）" disabled>⇧↵</button>
         <button id="key-up" type="button" data-keys="ff52" aria-label="上矢印" title="上矢印" disabled>

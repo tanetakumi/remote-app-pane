@@ -75,7 +75,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 #keys-button[aria-expanded="true"] { background: var(--color-primary); border-color: var(--color-primary); }
 #keys-palette {
   position: absolute; top: 8px; right: calc(env(safe-area-inset-right, 0px) + 8px); z-index: 5;
-  display: grid; grid-template-columns: repeat(3, 38px); grid-auto-rows: 38px; gap: 6px; padding: 6px;
+  display: grid; grid-template-columns: 14px repeat(3, 38px); grid-auto-rows: 38px; gap: 6px; padding: 6px;
   border: 1px solid var(--border-hover); border-radius: 12px; background: var(--bg-base); box-shadow: var(--shadow-card);
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
@@ -87,6 +87,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
   position: absolute; inset: 0; margin: auto; width: max-content; height: max-content; max-width: min(90%, 480px);
   padding: 8px 16px; border-radius: 12px; text-align: center; font-size: 1.05rem; line-height: 1.5;
   color: var(--text-secondary); overflow-wrap: anywhere; pointer-events: none; user-select: none;
+#keys-palette #keys-move { grid-row: span 2; width: 14px; min-width: 14px; height: auto; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); cursor: grab; }
+#keys-palette #keys-move:active:not(:disabled) { background: transparent; color: var(--text-primary); cursor: grabbing; }
+#keys-palette #keys-move svg { width: 14px; height: 28px; fill: currentColor; stroke: none; }
 }
 #connection-state.connecting { animation: power-pulse 1.2s ease-in-out infinite; }
 #connection-state.error { color: #fda4af; background: rgba(9, 13, 22, .85); border: 1px solid rgba(253, 164, 175, .3); }
