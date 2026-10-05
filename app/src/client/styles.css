@@ -66,12 +66,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 #text-button[aria-expanded="true"] { background: var(--color-primary); border-color: var(--color-primary); }
 .toggle { position: relative; }
 .toggle > * { position: absolute; display: grid; place-items: center; pointer-events: none; }
-.toggle > [data-option] { right: 4px; bottom: 3px; width: 12px; height: 12px; font-size: .6rem; font-weight: 600; opacity: .55; }
+.toggle > [data-option] { right: 4px; bottom: 4px; width: 12px; height: 12px; font-size: .6rem; font-weight: 600; opacity: .4; }
 .toggle[data-value="0"] > [data-option="0"], .toggle[data-value="1"] > [data-option="1"], .toggle[data-value="direct"] > [data-option="direct"], .toggle[data-value="relative"] > [data-option="relative"] {
-  inset: 0; width: auto; height: auto; font-size: 1.15rem; opacity: 1;
+  inset: 4px auto auto 4px; width: 20px; height: 20px; font-size: 1.15rem; opacity: 1;
 }
 #top-bar .toggle > svg[data-option] { width: 12px; height: 12px; stroke-width: 2.4; }
-#top-bar .toggle[data-value="direct"] > svg[data-option="direct"], #top-bar .toggle[data-value="relative"] > svg[data-option="relative"] { margin: auto; width: 20px; height: 20px; stroke-width: 2; }
+#top-bar .toggle[data-value="direct"] > svg[data-option="direct"], #top-bar .toggle[data-value="relative"] > svg[data-option="relative"] { width: 20px; height: 20px; stroke-width: 2; }
 #keys-button[aria-expanded="true"] { background: var(--color-primary); border-color: var(--color-primary); }
 #keys-palette {
   position: absolute; top: 8px; right: calc(env(safe-area-inset-right, 0px) + 8px); z-index: 5;
