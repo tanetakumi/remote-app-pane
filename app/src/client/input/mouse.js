@@ -55,6 +55,12 @@ export function createTouchMouse(element, mode, onEvent) {
   const Mouse = window.Guacamole.Mouse;
   const mouse = mode === 'relative' ? new Mouse.Touchpad(target) : new Mouse.Touchscreen(target);
   if (mode === 'direct') mouse.clickMoveThreshold = 8;
+  else {
+    // Touchpad sends a two-finger swipe down as wheel-down; make content follow the fingers.
+    const click = mouse.click;
+    const reversed = { up: 'down', down: 'up' };
+    mouse.click = (button, events) => click.call(mouse, reversed[button] ?? button, events);
+  }
   mouse.onEach(['mousedown', 'mousemove', 'mouseup'], event => {
     // Delayed clicks/long presses from a previous mode must not reach RDP.
     if (!disposed) {

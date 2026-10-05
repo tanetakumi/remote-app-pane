@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server/index.mjs",
     "build": "vite build && node scripts/build-assets.mjs",
-    "test": "node --test test/settings.test.mjs test/protocol.test.mjs test/tunnel.test.mjs test/mouse.test.mjs test/static.test.mjs",
+    "test": "node --test test/settings.test.mjs test/protocol.test.mjs test/tunnel.test.mjs test/mouse.test.mjs test/touch-mouse.test.mjs test/static.test.mjs",
     "test:browser": "npm run build && node --test test/browser.test.mjs"
   },
   "dependencies": {
