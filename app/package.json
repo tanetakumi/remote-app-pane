@@ -1,0 +1,23 @@
+{
+  "name": "remote-app-pane",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node src/server/index.mjs",
+    "build": "vite build && node scripts/build-assets.mjs",
+    "test": "node --test test/settings.test.mjs test/protocol.test.mjs test/tunnel.test.mjs test/mouse.test.mjs test/static.test.mjs",
+    "test:browser": "npm run build && node --test test/browser.test.mjs"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "vite": "8.3.1"
+  },
+  "author": "tanetakumi"
+}

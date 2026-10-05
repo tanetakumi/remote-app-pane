@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#090d16" />
+  <title>Remote App Pane</title>
+  <script src="/vendor/guacamole-1.6.0.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header id="top-bar">
+      <button id="connection-button" type="button" aria-label="接続" aria-pressed="false" title="接続" data-state="disconnected" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg>
+      </button>
+      <div class="status-group">
+        <div id="bitrate-pill" title="下り使用帯域（WebSocket圧縮後・app側で計測、1秒平均。携帯回線のTLS・再送は含まない）" hidden><span id="bitrate-value">0</span><span class="bitrate-unit">kbps</span></div>
+      </div>
+      <div id="top-bar-actions">
+        <button id="text-button" type="button" aria-label="メッセージ入力" aria-haspopup="dialog" aria-controls="text-dialog" aria-expanded="false" title="メッセージ入力" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 14.5zM7 9H6m4 0H9m4 0h-1m4 0h-1m-8 3H6m4 0H9m4 0h-1m4 0h-1m-8 3h10"/></svg>
+        </button>
+        <div id="pane-switch" class="segmented" role="group" aria-label="表示する画面">
+          <button type="button" data-pane="0" aria-label="左半分を表示" aria-pressed="true" title="左半分を表示" disabled>1</button>
+          <button type="button" data-pane="1" aria-label="右半分を表示" aria-pressed="false" title="右半分を表示" disabled>2</button>
+        </div>
+        <div id="touch-mode" class="segmented" role="group" aria-label="タッチ操作モード">
+          <button type="button" data-mode="direct" aria-label="Tap：画面を直接操作" aria-pressed="false" title="Tap：画面を直接操作" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12V5a2 2 0 0 1 4 0v7M13 9h2a2 2 0 0 1 2 2h1a2 2 0 0 1 2 2v3a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.8-2.4l-4-5.3a2 2 0 0 1 3-2.6L9 14M5 3 4 2M17 3l1-1M3 7H2M20 7h-1"/></svg>
+          </button>
+          <button type="button" data-mode="relative" aria-label="マウス：指を滑らせてカーソル移動" aria-pressed="true" title="マウス：指を滑らせてカーソル移動" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 3 7.5 18 2.5-7 7-2.5L4 3zM14 14l6 6"/></svg>
+          </button>
+        </div>
+        <button id="settings-button" type="button" aria-label="設定" aria-haspopup="dialog" aria-controls="settings-dialog" aria-expanded="false" title="設定">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </header>
+    <main id="viewer" aria-label="RDP デスクトップ">
+      <div id="display"></div>
+      <p id="connection-state" role="status" aria-live="polite">未接続</p>
+    </main>
+  </div>
+  <dialog id="credentials-dialog" aria-labelledby="credentials-title">
+    <form id="connect-form">
+      <h1 id="credentials-title">RDP に接続</h1>
+      <label>Windows ユーザー名<input id="username" autocomplete="username" required /></label>
+      <label>パスワード<input id="password" type="password" autocomplete="current-password" required /></label>
+      <div class="dialog-actions">
+        <button id="cancel" type="button">キャンセル</button>
+        <button id="connect" type="submit">接続</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="text-dialog" aria-labelledby="text-title">
+    <div class="text-dialog-header">
+      <label id="text-title" for="remote-text-input">メッセージ入力</label>
+      <button id="close-text" class="dismiss-button" type="button" aria-label="入力を閉じる" title="閉じる">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <textarea id="remote-text-input" rows="4" maxlength="16384" inputmode="text" enterkeyhint="enter" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="文章を入力して送信…" aria-describedby="text-input-error"></textarea>
+    <p id="text-input-error" role="status" aria-live="polite"></p>
+    <div class="text-dialog-actions">
+      <button id="send-text" type="button" disabled>送信</button>
+      <button id="send-text-enter" type="button" disabled>送信＋Enter</button>
+    </div>
+  </dialog>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <div class="settings-header">
+      <h1 id="settings-title">設定</h1>
+      <button id="close-settings" class="dismiss-button" type="button" aria-label="設定を閉じる" title="閉じる">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="settings-field">
+      <label for="settings-scale">解像度倍率</label>
+      <output id="settings-scale-value" for="settings-scale"></output>
+      <p id="settings-scale-description">高くすると文字が小さくなり、広い範囲が見えます。</p>
+      <input id="settings-scale" type="range" min="0.5" max="4" step="0.1" aria-describedby="settings-scale-description" disabled />
+    </div>
+    <div class="settings-field">
+      <label for="settings-compression">WebSocket 圧縮レベル</label>
+      <output id="settings-compression-value" for="settings-compression"></output>
+      <p id="settings-compression-description">0 は圧縮無効。高い値ほど圧縮を強くしますが、処理負荷も増えます。</p>
+      <input id="settings-compression" type="range" min="0" max="9" step="1" aria-describedby="settings-compression-description" disabled />
+    </div>
+    <button id="settings-save" type="button" disabled>保存</button>
+    <p id="settings-status" role="status" aria-live="polite" aria-atomic="true"></p>
+  </dialog>
+  <script type="module" src="/src/client/main.js"></script>
+</body>
+</html>

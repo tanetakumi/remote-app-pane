@@ -1,0 +1,22 @@
+services:
+  guacd:
+    image: guacamole/guacd:1.6.0
+    restart: unless-stopped
+
+  app:
+    build: ./app
+    init: true
+    volumes:
+      - ./app-config:/app/data
+    depends_on:
+      - guacd
+    environment:
+      RDP_HOST: ${RDP_HOST:-host.docker.internal}
+      RDP_USERNAME: ${RDP_USERNAME:-}
+      RDP_PASSWORD: ${RDP_PASSWORD:-}
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN:?CLOUDFLARE_TOKEN is required}
+    restart: unless-stopped

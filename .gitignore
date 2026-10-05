@@ -1,0 +1,12 @@
+node_modules/
+.agents/
+dist/
+.env
+.env.*
+!.env.example
+local/
+test-results/
+playwright-report/
+
+/app-config/
+/app/data/
