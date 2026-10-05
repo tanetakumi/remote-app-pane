@@ -22,7 +22,10 @@ let generation = 0;
 let active = false;
 let configuredCredentials = false;
 const textInput = createTextInput((text, enter) => remote.sendText(text, enter));
-createSettingsDialog(() => remote?.refreshSize());
+createSettingsDialog(settings => {
+  remote?.setPointerSpeed(settings.pointerSpeed);
+  remote?.refreshSize();
+});
 $('text-dialog').addEventListener('close', () => remote?.refreshSize());
 
 function connectionAction(label, state) {
@@ -62,13 +65,13 @@ async function connect(credentials = {}) {
   try {
     const webp = await webpSupported;
     if (generation !== current) return;
-    const { ticket } = await request('/api/connect', {
+    const { ticket, pointerSpeed } = await request('/api/connect', {
       ...credentials, width: viewer.clientWidth * 2, height: viewer.clientHeight, webp,
     });
     credentials = null;
     if (generation !== current) return;
     remote = openRemoteSession({
-      ticket, container: displayContainer, viewer, touchMode, pane,
+      ticket, container: displayContainer, viewer, touchMode, pointerSpeed, pane,
       isCurrent: () => generation === current,
       onBitrate: value => { bitrateValue.textContent = value; },
       onError: error => {

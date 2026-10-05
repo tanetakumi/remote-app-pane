@@ -81,6 +81,12 @@
       <input id="settings-scale" type="range" min="0.5" max="4" step="0.1" aria-describedby="settings-scale-description" disabled />
     </div>
     <div class="settings-field">
+      <label for="settings-speed">ポインタ速度</label>
+      <output id="settings-speed-value" for="settings-speed"></output>
+      <p id="settings-speed-description">マウスモードでカーソルを動かす速さです。1 が標準です。</p>
+      <input id="settings-speed" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-speed-description" disabled />
+    </div>
+    <div class="settings-field">
       <label for="settings-compression">WebSocket 圧縮レベル</label>
       <output id="settings-compression-value" for="settings-compression"></output>
       <p id="settings-compression-description">0 は圧縮無効。高い値ほど圧縮を強くしますが、処理負荷も増えます。</p>

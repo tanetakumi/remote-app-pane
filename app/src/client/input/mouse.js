@@ -1,6 +1,6 @@
 export const MOUSE_MOVE_INTERVAL_MS = 1000 / 60;
 
-export function createTouchMouse(element, mode, onEvent) {
+export function createTouchMouse(element, mode, onEvent, getSpeed) {
   const controller = new AbortController();
   let disposed = false;
   let touching = false;
@@ -60,6 +60,16 @@ export function createTouchMouse(element, mode, onEvent) {
     const click = mouse.click;
     const reversed = { up: 'down', down: 'up' };
     mouse.click = (button, events) => click.call(mouse, reversed[button] ?? button, events);
+    // Scale Touchpad's (already accelerated) step; it only moves the cursor inside this call.
+    const move = mouse.move;
+    mouse.move = (position, events) => {
+      const speed = getSpeed();
+      const { x, y } = mouse.currentState;
+      move.call(mouse, {
+        x: Math.min(Math.max(0, x + (position.x - x) * speed), element.offsetWidth - 1),
+        y: Math.min(Math.max(0, y + (position.y - y) * speed), element.offsetHeight - 1),
+      }, events);
+    };
   }
   mouse.onEach(['mousedown', 'mousemove', 'mouseup'], event => {
     // Delayed clicks/long presses from a previous mode must not reach RDP.

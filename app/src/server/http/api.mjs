@@ -48,7 +48,7 @@ export function createApi({ config, sessions }) {
       res.setHeader('Set-Cookie', `rdp-session=${nextId}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`);
       const ticket = sessions.issue({ sessionId: nextId, retained, credentials: { username, password,
         ...dimensions, webp: input.webp === true } });
-      json(res, 200, { ticket });
+      json(res, 200, { ticket, pointerSpeed: config.settings.get().pointerSpeed });
       return true;
     }
     return false;

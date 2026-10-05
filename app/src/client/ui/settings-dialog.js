@@ -5,12 +5,14 @@ export function createSettingsDialog(onSaved) {
   const $ = id => document.getElementById(id);
   const dialog = $('settings-dialog');
   const scale = $('settings-scale');
+  const speed = $('settings-speed');
   const compression = $('settings-compression');
   const save = $('settings-save');
   const status = $('settings-status');
-  const controls = [scale, compression, save];
+  const controls = [scale, speed, compression, save];
   const values = () => {
     $('settings-scale-value').textContent = `${scale.value}×`;
+    $('settings-speed-value').textContent = `${speed.value}×`;
     $('settings-compression-value').textContent = compression.value === '0' ? '無効' : compression.value;
   };
   const message = (text, error = false) => {
@@ -19,6 +21,7 @@ export function createSettingsDialog(onSaved) {
   };
   const apply = settings => {
     scale.value = settings.resolutionScale;
+    speed.value = settings.pointerSpeed;
     compression.value = settings.websocketCompressionLevel;
     values();
   };
@@ -34,16 +37,19 @@ export function createSettingsDialog(onSaved) {
     } catch (error) { message(error.message, true); }
   });
   scale.addEventListener('input', values);
+  speed.addEventListener('input', values);
   compression.addEventListener('input', values);
   save.addEventListener('click', async () => {
     busy(true);
     message('保存中…');
     try {
-      apply(await request('/api/settings', {
-        resolutionScale: Number(scale.value), websocketCompressionLevel: Number(compression.value),
-      }, 'PUT'));
-      onSaved();
-      message('保存しました。解像度倍率は現在の画面に、圧縮の変更は次の画面接続から反映されます。');
+      const saved = await request('/api/settings', {
+        resolutionScale: Number(scale.value), pointerSpeed: Number(speed.value),
+        websocketCompressionLevel: Number(compression.value),
+      }, 'PUT');
+      apply(saved);
+      onSaved(saved);
+      message('保存しました。解像度倍率とポインタ速度は現在の画面に、圧縮の変更は次の画面接続から反映されます。');
     } catch (error) { message(error.message, true); }
     busy(false);
   });

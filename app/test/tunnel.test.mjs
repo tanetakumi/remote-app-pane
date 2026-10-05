@@ -68,7 +68,7 @@ test('retains the owner after browser exit, joins it without credentials, and ex
   assert.equal(ws.extensions, 'permessage-deflate');
   ws.send(instruction('size', 2560, 850));
   await waitFor(() => received.some(parts => parts[0] === 'size' && parts[1] === '3072' && parts[2] === '1020'));
-  settings.set({ resolutionScale: 1.5, websocketCompressionLevel: 0 });
+  settings.set({ resolutionScale: 1.5, pointerSpeed: 1, websocketCompressionLevel: 0 });
   assert.equal(ws.extensions, 'permessage-deflate');
   ws.send(instruction('size', 2560, 850));
   await waitFor(() => received.some(parts => parts[0] === 'size' && parts[1] === '3840' && parts[2] === '1275'));

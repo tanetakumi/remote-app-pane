@@ -1,15 +1,18 @@
 import { readFileSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const defaults = { resolutionScale: 1.2, websocketCompressionLevel: 1 };
+const defaults = { resolutionScale: 1.2, pointerSpeed: 1, websocketCompressionLevel: 1 };
 
 function validateSettings(value) {
   const invalid = message => { throw Object.assign(new Error(`Invalid settings: ${message}`), { code: 'INVALID_SETTINGS' }); };
   if (!value || Array.isArray(value) || typeof value !== 'object'
-    || Object.keys(value).length !== 2 || !Object.hasOwn(value, 'resolutionScale')
-    || !Object.hasOwn(value, 'websocketCompressionLevel')) invalid('require resolutionScale and websocketCompressionLevel only.');
+    || Object.keys(value).length !== 3 || !Object.hasOwn(value, 'resolutionScale') || !Object.hasOwn(value, 'pointerSpeed')
+    || !Object.hasOwn(value, 'websocketCompressionLevel')) invalid('require resolutionScale, pointerSpeed and websocketCompressionLevel only.');
   if (typeof value.resolutionScale !== 'number' || !(value.resolutionScale >= 0.5 && value.resolutionScale <= 4)) {
     invalid('resolutionScale must be a number from 0.5 to 4.');
+  }
+  if (typeof value.pointerSpeed !== 'number' || !(value.pointerSpeed >= 0.5 && value.pointerSpeed <= 3)) {
+    invalid('pointerSpeed must be a number from 0.5 to 3.');
   }
   if (!Number.isInteger(value.websocketCompressionLevel) || value.websocketCompressionLevel < 0 || value.websocketCompressionLevel > 9) {
     invalid('websocketCompressionLevel must be an integer from 0 to 9.');

@@ -8,7 +8,7 @@ import { openSettings } from '../src/server/settings.mjs';
 import { rdpDimensions } from '../src/server/dimensions.mjs';
 import { createTestApp } from './helpers.mjs';
 
-const defaults = { resolutionScale: 1.2, websocketCompressionLevel: 1 };
+const defaults = { resolutionScale: 1.2, pointerSpeed: 1, websocketCompressionLevel: 1 };
 function location(t) {
   const dir = mkdtempSync(join(tmpdir(), 'remote-app-store-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -20,11 +20,11 @@ test('settings generate defaults, persist edits, and preserve current values on 
   const settings = openSettings(path);
   assert.deepEqual(settings.get(), defaults);
   assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), defaults);
-  const next = { resolutionScale: 1.5, websocketCompressionLevel: 0 };
+  const next = { resolutionScale: 1.5, pointerSpeed: 2.5, websocketCompressionLevel: 0 };
   settings.set(next);
   next.resolutionScale = 4;
   assert.equal(settings.get().resolutionScale, 1.5);
-  assert.deepEqual(openSettings(path).get(), { resolutionScale: 1.5, websocketCompressionLevel: 0 });
+  assert.deepEqual(openSettings(path).get(), { resolutionScale: 1.5, pointerSpeed: 2.5, websocketCompressionLevel: 0 });
   const copy = settings.get();
   copy.resolutionScale = 3;
   assert.equal(settings.get().resolutionScale, 1.5);
@@ -41,6 +41,8 @@ test('settings reject malformed, missing, unknown, and out-of-range values', t =
   const settings = openSettings(path);
   for (const invalid of [null, [], {}, { ...defaults, extra: true }, { ...defaults, resolutionScale: null },
     { ...defaults, resolutionScale: '1.2' }, { ...defaults, resolutionScale: 0.4 }, { ...defaults, resolutionScale: 4.1 },
+    { ...defaults, pointerSpeed: null }, { ...defaults, pointerSpeed: '1' }, { ...defaults, pointerSpeed: 0.4 },
+    { ...defaults, pointerSpeed: 3.1 }, { resolutionScale: 1.2, websocketCompressionLevel: 1 },
     { ...defaults, websocketCompressionLevel: 1.5 }, { ...defaults, websocketCompressionLevel: -1 },
     { ...defaults, websocketCompressionLevel: 10 }]) {
     assert.throws(() => settings.set(invalid), /settings/);
@@ -74,7 +76,7 @@ test('settings API persists validated edits, rejects other origins, and reports 
   assert.deepEqual(await (await fetch(origin + '/api/settings')).json(), defaults);
   assert.equal((await save(defaults, 'http://wrong.example')).status, 403);
   assert.equal((await save({ ...defaults, websocketCompressionLevel: 10 })).status, 400);
-  const next = { resolutionScale: 1.8, websocketCompressionLevel: 9 };
+  const next = { resolutionScale: 1.8, pointerSpeed: 0.5, websocketCompressionLevel: 9 };
   assert.deepEqual(await (await save(next)).json(), next);
   assert.deepEqual(settings.get(), next);
   settings.set = () => { throw new Error('disk unavailable'); };
