@@ -1,10 +1,35 @@
 export const MOUSE_MOVE_INTERVAL_MS = 1000 / 60;
+const LONG_PRESS_MS = 500;
 
 export function createTouchMouse(element, mode, onEvent, getSpeed) {
   const controller = new AbortController();
   let disposed = false;
   let touching = false;
   let swipe = null;
+  let longPress = null;
+  const cancelLongPress = () => {
+    clearTimeout(longPress?.timer);
+    longPress = null;
+  };
+  // A single finger held still sends a right click, unless it continues a tap-drag.
+  const trackLongPress = (type, event) => {
+    if (type === 'touchstart') {
+      cancelLongPress();
+      if (event.touches.length !== 1 || mouse.currentState.left) return;
+      const { clientX: x, clientY: y } = event.touches[0];
+      longPress = {
+        x, y,
+        timer: setTimeout(() => {
+          longPress = null;
+          press.call(mouse, 'right', event);
+          release.call(mouse, 'right', event);
+        }, LONG_PRESS_MS),
+      };
+    } else if (type === 'touchmove' && longPress) {
+      const { clientX, clientY } = event.touches[0];
+      if (Math.hypot(clientX - longPress.x, clientY - longPress.y) >= mouse.clickMoveThreshold) cancelLongPress();
+    } else if (type === 'touchend') cancelLongPress();
+  };
   // Guacamole has no listener disposal API. Scope its DOM listeners to this
   // mode while forwarding element geometry unchanged.
   const target = new Proxy(element, {
@@ -20,6 +45,7 @@ export function createTouchMouse(element, mode, onEvent, getSpeed) {
             lastY: finger.clientY, remainder: 0, scrolling: false,
           } : null;
         }
+        if (mode === 'relative') trackLongPress(type, event);
         if (type === 'touchend' && swipe?.scrolling) {
           event.preventDefault();
           // End Guacamole's gesture without turning a swipe back to its
@@ -54,8 +80,13 @@ export function createTouchMouse(element, mode, onEvent, getSpeed) {
   });
   const Mouse = window.Guacamole.Mouse;
   const mouse = mode === 'relative' ? new Mouse.Touchpad(target) : new Mouse.Touchscreen(target);
+  const { press, release } = mouse;
   if (mode === 'direct') mouse.clickMoveThreshold = 8;
   else {
+    // Touchpad taps with two or three fingers press right/middle; only the long press may.
+    const ignored = new Set(['right', 'middle']);
+    mouse.press = (button, events) => !ignored.has(button) && press.call(mouse, button, events);
+    mouse.release = (button, events) => !ignored.has(button) && release.call(mouse, button, events);
     // Touchpad sends a two-finger swipe down as wheel-down; make content follow the fingers.
     const click = mouse.click;
     const reversed = { up: 'down', down: 'up' };
@@ -82,6 +113,7 @@ export function createTouchMouse(element, mode, onEvent, getSpeed) {
     state: mouse.currentState,
     dispose() {
       controller.abort();
+      cancelLongPress();
       mouse.reset();
       disposed = true;
     },
