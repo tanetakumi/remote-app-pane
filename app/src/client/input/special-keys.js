@@ -1,4 +1,4 @@
-// Header button and floating palette that send single key presses to the remote desktop.
+// Header button and floating palette that send key presses and shortcuts to the remote desktop.
 // The palette can be dragged by its handle and stays inside the viewer.
 export function createSpecialKeys(sendKeys) {
   const $ = id => document.getElementById(id);

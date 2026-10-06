@@ -115,10 +115,16 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   const beforeKeys = received.length;
   await page.locator('#key-backspace').click();
   await page.locator('#key-shift-enter').click();
+  for (const key of ['a', 'v', 'c']) {
+    await page.getByRole('button', { name: `Ctrl+${key.toUpperCase()}`, exact: true }).click({ timeout: 1000 });
+  }
   await page.waitForTimeout(50);
   assert.deepEqual(received.slice(beforeKeys).filter(parts => parts[0] === 'key').map(parts => parts.slice(1)), [
     ['65288', '1'], ['65288', '0'],
     ['65505', '1'], ['65293', '1'], ['65293', '0'], ['65505', '0'],
+    ['65507', '1'], ['97', '1'], ['97', '0'], ['65507', '0'],
+    ['65507', '1'], ['118', '1'], ['118', '0'], ['65507', '0'],
+    ['65507', '1'], ['99', '1'], ['99', '0'], ['65507', '0'],
   ]);
   const box = selector => page.locator(selector).boundingBox();
   const keyCount = () => received.filter(parts => parts[0] === 'key').length;
