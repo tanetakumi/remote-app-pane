@@ -30,7 +30,7 @@ export function createSettingsDialog(onSaved) {
   const touchSettings = {};
   const touchFields = [
     ['scrollSensitivity', 1, 'settings-scroll-sensitivity', '×'],
-    ['scrollAcceleration', 1, 'settings-scroll-acceleration', '×'],
+    ['scrollStartDistance', 8, 'settings-scroll-start', ' px'],
     ['longPressMs', 700, 'settings-long-press', ' ms'],
   ];
   for (const [key, fallback, id, unit] of touchFields) {

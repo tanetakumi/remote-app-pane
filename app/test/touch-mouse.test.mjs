@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { createTouchMouse } from '../src/client/input/mouse.js';
 
-function setup(mode, speed = () => 1, settings = { scrollSensitivity: 1, scrollAcceleration: 0, longPressMs: 700 }) {
+function setup(mode, speed = () => 1, settings = { scrollSensitivity: 1, scrollStartDistance: 8, longPressMs: 700 }) {
   // Guacamole's single-finger acceleration reads the clock; pin it for exact deltas.
   const clock = { now: 0 };
   const sandbox = { window: { devicePixelRatio: 1, setTimeout: (...args) => setTimeout(...args), clearTimeout: id => clearTimeout(id) }, document: {}, Date: class { getTime() { return clock.now; } } };
@@ -64,7 +64,7 @@ test('mouse mode right-clicks on a long press of the live set duration, not on a
   mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const buttons = events => events.filter(event => event.type !== 'mousemove').map(event => `${event.type}:${event.right}`);
-    const settings = { scrollSensitivity: 1, scrollAcceleration: 0, longPressMs: 700 };
+    const settings = { scrollSensitivity: 1, scrollStartDistance: 8, longPressMs: 700 };
     const long = setup('relative', () => 1, settings);
     long.touch('touchstart', [100]);
     mock.timers.tick(699);
@@ -110,16 +110,16 @@ test('one-finger swipe in Tap mode scrolls before a full threshold of movement',
   assert.deepEqual(events.filter(event => event.type === 'mousedown').map(event => [event.up, event.down]), [[true, false]]);
 });
 
-test('Tap scroll distance follows sensitivity and finger speed', () => {
-  const notches = settings => {
-    const { events, touch, clock } = setup('direct', () => 1, settings);
+test('Tap scroll distance follows sensitivity and starts after the set distance', () => {
+  const notches = (settings, moveY = 160) => {
+    const { events, touch } = setup('direct', () => 1, settings);
     touch('touchstart', [100], [100]);
-    clock.now = settings.ms;
-    touch('touchmove', [160], [100]);
+    touch('touchmove', [moveY], [100]);
     return events.filter(event => event.type === 'mousedown').length;
   };
-  const steady = { scrollSensitivity: 1, scrollAcceleration: 0, ms: 600 };
-  assert.equal(notches({ ...steady, scrollSensitivity: 2 }) > notches(steady), true);
-  assert.equal(notches({ ...steady, scrollAcceleration: 1, ms: 20 }) > notches({ ...steady, ms: 20 }), true);
-  assert.equal(notches({ ...steady, scrollAcceleration: 1 }), notches(steady));
+  const base = { scrollSensitivity: 1, scrollStartDistance: 8, longPressMs: 700 };
+  assert.equal(notches({ ...base, scrollSensitivity: 2 }) > notches(base), true);
+  const fast = { ...base, scrollSensitivity: 2 };
+  assert.equal(notches(fast, 107), 0);
+  assert.equal(notches({ ...fast, scrollStartDistance: 4 }, 107), 1);
 });
