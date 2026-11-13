@@ -8,7 +8,7 @@
   <script src="/vendor/guacamole-1.6.0.js"></script>
 </head>
 <body>
-  <div id="app">
+  <div id="app" data-bar="bottom">
     <header id="top-bar">
       <button id="connection-button" type="button" aria-label="接続" aria-pressed="false" title="接続" data-state="disconnected" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg>
@@ -56,8 +56,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <button id="key-ctrl-a" class="key-shortcut" type="button" data-keys="ffe3 61" aria-label="Ctrl+A" title="Ctrl+A（全選択）" disabled>Ctrl<br>A</button>
-        <button id="key-ctrl-v" class="key-shortcut" type="button" data-keys="ffe3 76" aria-label="Ctrl+V" title="Ctrl+V（貼り付け）" disabled>Ctrl<br>V</button>
-        <button id="key-ctrl-c" class="key-shortcut" type="button" data-keys="ffe3 63" aria-label="Ctrl+C" title="Ctrl+C（コピー）" disabled>Ctrl<br>C</button>
+        <button id="key-ctrl-s" class="key-shortcut" type="button" data-keys="ffe3 73" aria-label="Ctrl+S" title="Ctrl+S（保存）" disabled>Ctrl<br>S</button>
       </div>
       <p id="connection-state" role="status" aria-live="polite">未接続</p>
     </main>
@@ -94,46 +93,54 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <div class="settings-field">
-      <label for="settings-scale">解像度倍率</label>
-      <output id="settings-scale-value" for="settings-scale"></output>
-      <input id="settings-scale" type="range" min="0.5" max="4" step="0.1" aria-describedby="settings-scale-description" disabled />
-      <p id="settings-scale-description">高いほど文字は小さく、広い範囲が見えます。</p>
-    </div>
-    <div class="settings-field">
-      <label for="settings-speed">ポインタ速度</label>
-      <output id="settings-speed-value" for="settings-speed"></output>
-      <input id="settings-speed" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-speed-description" disabled />
-      <p id="settings-speed-description">マウスモードでの移動の速さ。1 が標準です。</p>
-    </div>
-    <div class="settings-field">
-      <label for="settings-compression">WebSocket 圧縮レベル</label>
-      <output id="settings-compression-value" for="settings-compression"></output>
-      <input id="settings-compression" type="range" min="0" max="9" step="1" aria-describedby="settings-compression-description" disabled />
-      <p id="settings-compression-description">0 は無効。高いほど強く圧縮しますが負荷も増えます。次の接続から反映します。</p>
-    </div>
-    <div class="settings-field">
-      <label for="settings-scroll-sensitivity">スクロール感度</label>
-      <output id="settings-scroll-sensitivity-value" for="settings-scroll-sensitivity"></output>
-      <input id="settings-scroll-sensitivity" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-scroll-sensitivity-description" />
-      <p id="settings-scroll-sensitivity-description">Tap の1本指スワイプで、少ない移動でスクロールします。この端末だけの設定で、すぐ反映します。</p>
-    </div>
-    <div class="settings-field">
-      <label for="settings-scroll-start">スクロール開始距離</label>
-      <output id="settings-scroll-start-value" for="settings-scroll-start"></output>
-      <input id="settings-scroll-start" type="range" min="2" max="16" step="1" aria-describedby="settings-scroll-start-description" />
-      <p id="settings-scroll-start-description">Tap で、この距離だけ指を動かすとスクロールが始まります。小さいほど早く始まりますが、タップでも始まりやすくなります。この端末だけの設定で、すぐ反映します。</p>
-    </div>
-    <div class="settings-field">
-      <label for="settings-long-press">長押し時間</label>
-      <output id="settings-long-press-value" for="settings-long-press"></output>
-      <input id="settings-long-press" type="range" min="300" max="1500" step="50" aria-describedby="settings-long-press-description" />
-      <p id="settings-long-press-description">マウスモードで、指を止めて右クリックになるまでの時間。この端末だけの設定で、すぐ反映します。</p>
-    </div>
-    <div class="settings-field">
-      <label for="settings-bar-bottom">バーを下に表示</label>
-      <input id="settings-bar-bottom" type="checkbox" aria-describedby="settings-bar-description" />
-      <p id="settings-bar-description">この端末だけの設定で、チェックするとすぐ反映します。接続には影響しません。</p>
+    <div class="settings-body">
+      <section aria-labelledby="settings-shared-title" class="settings-section">
+        <h2 id="settings-shared-title">アプリ全体<span>保存で反映</span></h2>
+        <div class="settings-field">
+          <label for="settings-scale">解像度倍率</label>
+          <output id="settings-scale-value" for="settings-scale"></output>
+          <input id="settings-scale" type="range" min="0.5" max="4" step="0.1" aria-describedby="settings-scale-description" disabled />
+          <p id="settings-scale-description">高いほど文字は小さく、広い範囲が見えます。</p>
+        </div>
+        <div class="settings-field">
+          <label for="settings-speed">ポインタ速度</label>
+          <output id="settings-speed-value" for="settings-speed"></output>
+          <input id="settings-speed" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-speed-description" disabled />
+          <p id="settings-speed-description">マウスモードでの移動の速さ。1 が標準です。</p>
+        </div>
+        <div class="settings-field">
+          <label for="settings-compression">WebSocket 圧縮レベル</label>
+          <output id="settings-compression-value" for="settings-compression"></output>
+          <input id="settings-compression" type="range" min="0" max="9" step="1" aria-describedby="settings-compression-description" disabled />
+          <p id="settings-compression-description">0 は無効。高いほど強く圧縮しますが負荷も増えます。次の接続から反映します。</p>
+        </div>
+      </section>
+      <section aria-labelledby="settings-device-title" class="settings-section">
+        <h2 id="settings-device-title">この端末<span>すぐ反映・自動保存</span></h2>
+        <div class="settings-field">
+          <label for="settings-scroll-sensitivity">スクロール感度</label>
+          <output id="settings-scroll-sensitivity-value" for="settings-scroll-sensitivity"></output>
+          <input id="settings-scroll-sensitivity" type="range" min="0.5" max="3" step="0.1" aria-describedby="settings-scroll-sensitivity-description" />
+          <p id="settings-scroll-sensitivity-description">Tap の1本指スワイプで、少ない移動でスクロールします。</p>
+        </div>
+        <div class="settings-field">
+          <label for="settings-scroll-start">スクロール開始距離</label>
+          <output id="settings-scroll-start-value" for="settings-scroll-start"></output>
+          <input id="settings-scroll-start" type="range" min="2" max="16" step="1" aria-describedby="settings-scroll-start-description" />
+          <p id="settings-scroll-start-description">Tap で、この距離だけ指を動かすとスクロールが始まります。小さいほど早く始まりますが、タップでも始まりやすくなります。</p>
+        </div>
+        <div class="settings-field">
+          <label for="settings-long-press">長押し時間</label>
+          <output id="settings-long-press-value" for="settings-long-press"></output>
+          <input id="settings-long-press" type="range" min="300" max="1500" step="50" aria-describedby="settings-long-press-description" />
+          <p id="settings-long-press-description">マウスモードで、指を止めて右クリックになるまでの時間。</p>
+        </div>
+        <div class="settings-field">
+          <label for="settings-bar-top">バーを上に表示</label>
+          <input id="settings-bar-top" type="checkbox" aria-describedby="settings-bar-description" />
+          <p id="settings-bar-description">初期状態は下。チェックすると上に移動します。接続には影響しません。</p>
+        </div>
+      </section>
     </div>
     <div class="settings-footer">
       <p id="settings-status" role="status" aria-live="polite" aria-atomic="true"></p>

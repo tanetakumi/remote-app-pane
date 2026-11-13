@@ -64,6 +64,8 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
     context.fillStyle = '#ff0000'; context.fillRect(0, 0, 1, 1);
     return canvas.toDataURL('image/webp', 1).split(',')[1];
   });
+  assert.equal(await page.locator('#app').getAttribute('data-bar'), 'bottom');
+  assert.equal(await page.locator('#key-ctrl-v, #key-ctrl-c').count(), 0);
   assert.equal(await page.locator('#bitrate-pill').isVisible(), false);
   assert.equal(await page.locator('#connection-button').getAttribute('data-state'), 'disconnected');
   assert.equal(await page.locator('#connection-state').isVisible(), true);
@@ -115,7 +117,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   const beforeKeys = received.length;
   await page.locator('#key-backspace').click();
   await page.locator('#key-shift-enter').click();
-  for (const key of ['a', 'v', 'c']) {
+  for (const key of ['a', 's']) {
     await page.getByRole('button', { name: `Ctrl+${key.toUpperCase()}`, exact: true }).click({ timeout: 1000 });
   }
   await page.waitForTimeout(50);
@@ -123,8 +125,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
     ['65288', '1'], ['65288', '0'],
     ['65505', '1'], ['65293', '1'], ['65293', '0'], ['65505', '0'],
     ['65507', '1'], ['97', '1'], ['97', '0'], ['65507', '0'],
-    ['65507', '1'], ['118', '1'], ['118', '0'], ['65507', '0'],
-    ['65507', '1'], ['99', '1'], ['99', '0'], ['65507', '0'],
+    ['65507', '1'], ['115', '1'], ['115', '0'], ['65507', '0'],
   ]);
   const box = selector => page.locator(selector).boundingBox();
   const keyCount = () => received.filter(parts => parts[0] === 'key').length;
@@ -190,13 +191,13 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   assert.equal(await settingsHeight(), loadingHeight);
   assert.equal(await page.locator('#settings-long-press-value').textContent(), '700 ms');
   // The bar position applies at once and only reorders the layout: no resize reaches the desktop.
-  await page.locator('#settings-bar-bottom').check();
+  await page.locator('#settings-bar-top').uncheck();
   const barBelow = await box('#top-bar');
   const viewerWithBarBelow = await box('#viewer');
   assert.ok(barBelow.y >= viewerWithBarBelow.y + viewerWithBarBelow.height);
   assert.deepEqual([viewerWithBarBelow.width, viewerWithBarBelow.height], [viewerBeforeBar.width, viewerBeforeBar.height]);
-  await page.locator('#settings-bar-bottom').uncheck();
-  assert.ok((await box('#top-bar')).y < viewerBeforeBar.y);
+  await page.locator('#settings-bar-top').check();
+  assert.ok((await box('#top-bar')).y < (await box('#viewer')).y);
   await page.waitForTimeout(300);
   assert.deepEqual(received.slice(messagesBeforeBar), []);
   assert.equal(await page.locator('#settings-scale').inputValue(), '1.2');
@@ -226,13 +227,13 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.locator('#settings-scale').fill('1.2');
   await page.locator('#settings-save').click();
   await waitForSize(3072, 1020);
-  await page.locator('#settings-bar-bottom').check();
+  await page.locator('#settings-bar-top').uncheck();
   await page.locator('#close-settings').click();
   await page.reload();
   await page.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
   assert.equal(await page.locator('#app').getAttribute('data-bar'), 'bottom');
   await page.locator('#settings-button').click();
-  await page.locator('#settings-bar-bottom').uncheck();
+  await page.locator('#settings-bar-top').check();
   await page.locator('#close-settings').click();
   await waitForSize(3072, 1020);
   assert.equal(received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length, initialConnections);
@@ -244,7 +245,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   // Both bar positions retain the viewer and canvas geometry, including after dialog.close().
   for (const bottom of [false, true]) {
     await page.locator('#settings-button').click();
-    await page.locator('#settings-bar-bottom').setChecked(bottom);
+    await page.locator('#settings-bar-top').setChecked(!bottom);
     await page.locator('#close-settings').click();
     const geometry = async () => Promise.all(['#viewer', '#top-bar', '#display canvas:first-child'].map(selector =>
       page.locator(selector).first().boundingBox()));
@@ -274,7 +275,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await waitForSize(2160, 780);
   await page.locator('#close-text').click();
   await page.locator('#settings-button').click();
-  await page.locator('#settings-bar-bottom').uncheck();
+  await page.locator('#settings-bar-top').check();
   await page.locator('#close-settings').click();
   await page.locator('#text-button').click();
   await page.locator('#close-text').click();
@@ -415,4 +416,32 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '未接続');
   assert.equal((await (await savedContext.request.get(`http://127.0.0.1:${server.address().port}/api/status`)).json()).retained, false);
   assert.deepEqual(errors, []);
+});
+
+
+test('settings keeps close and save visible while fields scroll on small screens', async t => {
+  const { server } = createTestApp(t);
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  t.after(async () => { await browser.close(); await new Promise(done => server.close(done)); });
+  const page = await browser.newPage();
+  await page.goto(`http://127.0.0.1:${server.address().port}`);
+  await page.locator('#settings-button').click();
+  await page.waitForFunction(() => !document.getElementById('settings-save').disabled);
+  for (const viewport of [{ width: 375, height: 667 }, { width: 667, height: 375 }]) {
+    await page.setViewportSize(viewport);
+    const actions = async () => Promise.all(['#close-settings', '#settings-save', '#settings-status'].map(selector =>
+      page.locator(selector).boundingBox()));
+    const before = await actions();
+    assert.ok(before.every(box => box && box.y >= 0 && box.y + box.height <= viewport.height));
+    await page.locator('.settings-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
+    assert.deepEqual(await actions(), before);
+    assert.equal(await page.locator('.settings-body').evaluate(el => el.scrollTop > 0), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.locator('#settings-bar-top').check();
+    assert.equal(await page.locator('#app').getAttribute('data-bar'), 'top');
+  }
+  await page.locator('#close-settings').click();
+  await page.reload();
+  assert.equal(await page.locator('#app').getAttribute('data-bar'), 'top');
 });

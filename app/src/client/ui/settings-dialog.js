@@ -45,8 +45,8 @@ export function createSettingsDialog(onSaved) {
       localStorage.setItem(key, input.value);
     });
   }
-  const barBottom = $('settings-bar-bottom');
-  const placeBar = () => { $('app').dataset.bar = barBottom.checked ? 'bottom' : 'top'; };
+  const barTop = $('settings-bar-top');
+  const placeBar = () => { $('app').dataset.bar = barTop.checked ? 'top' : 'bottom'; };
   const busy = value => { for (const control of controls) control.disabled = value; };
   $('settings-button').addEventListener('click', async () => {
     busy(true);
@@ -59,9 +59,9 @@ export function createSettingsDialog(onSaved) {
       message('');
     } catch (error) { message(error.message, true); }
   });
-  barBottom.checked = localStorage.getItem('barPosition') === 'bottom';
+  barTop.checked = localStorage.getItem('barPosition') === 'top';
   placeBar();
-  barBottom.addEventListener('change', () => {
+  barTop.addEventListener('change', () => {
     placeBar();
     localStorage.setItem('barPosition', $('app').dataset.bar);
   });
