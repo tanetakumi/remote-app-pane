@@ -1,7 +1,7 @@
 import { request } from '../core/api.js';
 
 // Load on open, edit locally, and persist only when Save is pressed.
-// The bar position and touch feel are per device: they apply and are remembered immediately, without Save.
+// Touch feel is per device: it applies and is remembered immediately, without Save.
 // Returns the live touch settings, keyed like their localStorage entries.
 export function createSettingsDialog(onSaved) {
   const $ = id => document.getElementById(id);
@@ -45,8 +45,6 @@ export function createSettingsDialog(onSaved) {
       localStorage.setItem(key, input.value);
     });
   }
-  const barTop = $('settings-bar-top');
-  const placeBar = () => { $('app').dataset.bar = barTop.checked ? 'top' : 'bottom'; };
   const busy = value => { for (const control of controls) control.disabled = value; };
   $('settings-button').addEventListener('click', async () => {
     busy(true);
@@ -58,12 +56,6 @@ export function createSettingsDialog(onSaved) {
       busy(false);
       message('');
     } catch (error) { message(error.message, true); }
-  });
-  barTop.checked = localStorage.getItem('barPosition') === 'top';
-  placeBar();
-  barTop.addEventListener('change', () => {
-    placeBar();
-    localStorage.setItem('barPosition', $('app').dataset.bar);
   });
   scale.addEventListener('input', values);
   speed.addEventListener('input', values);

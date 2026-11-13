@@ -23,7 +23,7 @@ const paneButton = $('pane-button');
 let touchMode = 'relative';
 let pane = 0;
 let configuredCredentials = false;
-preserveInputLayout($('app'), $('top-bar'));
+preserveInputLayout($('app'), $('toolbar'));
 const textInput = createTextInput((text, enter) => connection.remote.sendText(text, enter));
 const specialKeys = createSpecialKeys(keysyms => {
   connection.remote?.sendKeys(keysyms);

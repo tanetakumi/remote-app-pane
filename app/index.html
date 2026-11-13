@@ -8,8 +8,8 @@
   <script src="/vendor/guacamole-1.6.0.js"></script>
 </head>
 <body>
-  <div id="app" data-bar="bottom">
-    <header id="top-bar">
+  <div id="app">
+    <footer id="toolbar">
       <button id="connection-button" type="button" aria-label="接続" aria-pressed="false" title="接続" data-state="disconnected" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 5.7a9 9 0 1 0 11.4 0"/></svg>
       </button>
@@ -19,8 +19,8 @@
       <div class="status-group">
         <div id="bitrate-pill" title="下り使用帯域（WebSocket圧縮後・app側で計測、1秒平均。携帯回線のTLS・再送は含まない）" hidden><span id="bitrate-value">0.0</span><span id="bitrate-unit">kbps</span></div>
       </div>
-      <div id="top-bar-actions">
-        <button id="keys-button" type="button" aria-label="特殊キー" aria-controls="keys-palette" aria-expanded="false" title="特殊キー" disabled>
+      <div id="toolbar-actions">
+        <button id="keys-button" type="button" aria-label="特殊キー" aria-description="タップでパレット、長押ししてスライドでBS・Shift+Enter・左・右を送信" aria-controls="keys-palette keys-quick" aria-expanded="false" title="特殊キー（長押ししてスライド）" disabled>
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
         </button>
         <button id="text-button" type="button" aria-label="メッセージ入力" aria-haspopup="dialog" aria-controls="text-dialog" aria-expanded="false" title="メッセージ入力" disabled>
@@ -34,7 +34,7 @@
           <svg data-option="relative" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 3 7.5 18 2.5-7 7-2.5L4 3zM14 14l6 6"/></svg>
         </button>
       </div>
-    </header>
+    </footer>
     <main id="viewer" aria-label="RDP デスクトップ">
       <div id="display"></div>
       <div id="keys-palette" role="group" aria-label="特殊キー" hidden>
@@ -60,6 +60,15 @@
       </div>
       <p id="connection-state" role="status" aria-live="polite">未接続</p>
     </main>
+  </div>
+  <div id="keys-quick" role="group" aria-label="長押し特殊キー" hidden>
+    <div class="quick-keys">
+      <button type="button" data-keys="ff08" aria-label="Backspace">BS</button>
+      <button type="button" data-keys="ffe1 ff0d" aria-label="Shift+Enter">⇧↵</button>
+      <button type="button" data-keys="ff51" aria-label="左矢印">←</button>
+      <button type="button" data-keys="ff53" aria-label="右矢印">→</button>
+    </div>
+    <p>スライドして離す · 元の位置でキャンセル</p>
   </div>
   <dialog id="credentials-dialog" aria-labelledby="credentials-title">
     <form id="connect-form">
@@ -134,11 +143,6 @@
           <output id="settings-long-press-value" for="settings-long-press"></output>
           <input id="settings-long-press" type="range" min="300" max="1500" step="50" aria-describedby="settings-long-press-description" />
           <p id="settings-long-press-description">マウスモードで、指を止めて右クリックになるまでの時間。</p>
-        </div>
-        <div class="settings-field">
-          <label for="settings-bar-top">バーを上に表示</label>
-          <input id="settings-bar-top" type="checkbox" aria-describedby="settings-bar-description" />
-          <p id="settings-bar-description">初期状態は下。チェックすると上に移動します。接続には影響しません。</p>
         </div>
       </section>
     </div>

@@ -64,7 +64,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
     context.fillStyle = '#ff0000'; context.fillRect(0, 0, 1, 1);
     return canvas.toDataURL('image/webp', 1).split(',')[1];
   });
-  assert.equal(await page.locator('#app').getAttribute('data-bar'), 'bottom');
+  assert.ok((await page.locator('#toolbar').boundingBox()).y >= (await page.locator('#viewer').boundingBox()).height);
   assert.equal(await page.locator('#key-ctrl-v, #key-ctrl-c').count(), 0);
   assert.equal(await page.locator('#bitrate-pill').isVisible(), false);
   assert.equal(await page.locator('#connection-button').getAttribute('data-state'), 'disconnected');
@@ -111,6 +111,46 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.keyboard.press('b');
   await page.waitForTimeout(50);
   assert.ok(received.some(parts => parts[0] === 'key' && parts[1] === '98' && parts[2] === '1'));
+  // Hold, slide, release: each shortcut sends exactly once and consumes the click.
+  const holdKeys = async () => {
+    const bounds = await page.locator('#keys-button').boundingBox();
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(400);
+    assert.equal(await page.locator('#keys-quick').isVisible(), true);
+  };
+  for (const [code, expected] of [
+    ['ff08', [['65288', '1'], ['65288', '0']]],
+    ['ffe1 ff0d', [['65505', '1'], ['65293', '1'], ['65293', '0'], ['65505', '0']]],
+    ['ff51', [['65361', '1'], ['65361', '0']]],
+    ['ff53', [['65363', '1'], ['65363', '0']]],
+  ]) {
+    const before = received.length;
+    await holdKeys();
+    const target = page.locator(`#keys-quick [data-keys="${code}"]`);
+    const bounds = await target.boundingBox();
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, { steps: 4 });
+    assert.equal(await target.getAttribute('data-selected'), 'true');
+    await page.mouse.up();
+    await page.waitForTimeout(50);
+    assert.deepEqual(received.slice(before).filter(parts => parts[0] === 'key').map(parts => parts.slice(1)), expected);
+    assert.equal(await page.locator('#keys-quick').isVisible(), false);
+    assert.equal(await page.locator('#keys-palette').isVisible(), false);
+    assert.equal(received.slice(before).some(parts => parts[0] === 'mouse'), false);
+  }
+  const beforeCancel = received.length;
+  await holdKeys();
+  await page.mouse.up(); // Releasing at the origin cancels.
+  await holdKeys();
+  await page.mouse.move(5, 300);
+  await page.mouse.up(); // Releasing outside cancels.
+  await holdKeys();
+  await page.locator('#keys-button').dispatchEvent('pointercancel', { pointerId: 1 });
+  await page.mouse.up();
+  await page.waitForTimeout(50);
+  assert.equal(await page.locator('#keys-quick').isVisible(), false);
+  assert.equal(await page.locator('#keys-palette').isVisible(), false);
+  assert.equal(received.slice(beforeCancel).some(parts => parts[0] === 'key'), false);
   assert.equal(await page.locator('#keys-palette').isVisible(), false);
   await page.locator('#keys-button').click();
   assert.equal(await page.locator('#keys-palette').isVisible(), true);
@@ -179,8 +219,6 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
       return display?.style.width === `${w}px` && display?.style.height === `${h}px`;
     }, [width, height]);
   };
-  const viewerBeforeBar = await box('#viewer');
-  const messagesBeforeBar = received.length;
   const initialConnections = received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length;
   await page.locator('#settings-button').click();
   assert.equal(await page.locator('#settings-dialog').isVisible(), true);
@@ -190,16 +228,6 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.waitForFunction(() => !document.getElementById('settings-save').disabled);
   assert.equal(await settingsHeight(), loadingHeight);
   assert.equal(await page.locator('#settings-long-press-value').textContent(), '700 ms');
-  // The bar position applies at once and only reorders the layout: no resize reaches the desktop.
-  await page.locator('#settings-bar-top').uncheck();
-  const barBelow = await box('#top-bar');
-  const viewerWithBarBelow = await box('#viewer');
-  assert.ok(barBelow.y >= viewerWithBarBelow.y + viewerWithBarBelow.height);
-  assert.deepEqual([viewerWithBarBelow.width, viewerWithBarBelow.height], [viewerBeforeBar.width, viewerBeforeBar.height]);
-  await page.locator('#settings-bar-top').check();
-  assert.ok((await box('#top-bar')).y < (await box('#viewer')).y);
-  await page.waitForTimeout(300);
-  assert.deepEqual(received.slice(messagesBeforeBar), []);
   assert.equal(await page.locator('#settings-scale').inputValue(), '1.2');
   const keysBeforeSettings = received.filter(parts => parts[0] === 'key').length;
   await page.locator('#settings-scale').fill('1.5');
@@ -227,14 +255,10 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.locator('#settings-scale').fill('1.2');
   await page.locator('#settings-save').click();
   await waitForSize(3072, 1020);
-  await page.locator('#settings-bar-top').uncheck();
   await page.locator('#close-settings').click();
   await page.reload();
   await page.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
-  assert.equal(await page.locator('#app').getAttribute('data-bar'), 'bottom');
-  await page.locator('#settings-button').click();
-  await page.locator('#settings-bar-top').check();
-  await page.locator('#close-settings').click();
+  assert.ok((await page.locator('#toolbar').boundingBox()).y >= (await page.locator('#viewer').boundingBox()).height);
   await waitForSize(3072, 1020);
   assert.equal(received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length, initialConnections);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -242,12 +266,9 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.setViewportSize({ width: 1280, height: 900 });
   await waitForSize(3072, 1020);
   // Model Brave iOS resizing the layout viewport while its keyboard opens/closes.
-  // Both bar positions retain the viewer and canvas geometry, including after dialog.close().
-  for (const bottom of [false, true]) {
-    await page.locator('#settings-button').click();
-    await page.locator('#settings-bar-top').setChecked(!bottom);
-    await page.locator('#close-settings').click();
-    const geometry = async () => Promise.all(['#viewer', '#top-bar', '#display canvas:first-child'].map(selector =>
+  // The bottom bar and canvas retain their geometry, including after dialog.close().
+  {
+    const geometry = async () => Promise.all(['#viewer', '#toolbar', '#display canvas:first-child'].map(selector =>
       page.locator(selector).first().boundingBox()));
     const before = await geometry();
     const beforeKeyboardResize = received.filter(parts => parts[0] === 'size').length;
@@ -274,9 +295,6 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.setViewportSize({ width: 900, height: 700 });
   await waitForSize(2160, 780);
   await page.locator('#close-text').click();
-  await page.locator('#settings-button').click();
-  await page.locator('#settings-bar-top').check();
-  await page.locator('#close-settings').click();
   await page.locator('#text-button').click();
   await page.locator('#close-text').click();
   // A width change while settling after input releases the lock instead of re-locking.
@@ -315,9 +333,9 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.setViewportSize({ width: 390, height: 844 });
   // connect() just closed the credentials dialog, so the input lock is released by the next resize event.
   await page.waitForFunction(() => {
-    const header = document.getElementById('top-bar').getBoundingClientRect();
+    const bar = document.getElementById('toolbar').getBoundingClientRect();
     const viewer = document.getElementById('viewer').getBoundingClientRect();
-    return header.height === 50 && viewer.top === header.bottom && viewer.bottom === window.innerHeight &&
+    return bar.height === 50 && viewer.top === 0 && viewer.bottom === bar.top && bar.bottom === window.innerHeight &&
       viewer.width === window.innerWidth && document.documentElement.scrollWidth === window.innerWidth &&
       document.documentElement.scrollHeight === window.innerHeight;
   });
@@ -325,7 +343,7 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   assert.equal(await page.evaluate(() => {
     const pill = document.getElementById('bitrate-pill').getBoundingClientRect();
     const button = document.getElementById('connection-button').getBoundingClientRect();
-    const actions = document.getElementById('top-bar-actions').getBoundingClientRect();
+    const actions = document.getElementById('toolbar-actions').getBoundingClientRect();
     return pill.width > 0 && button.right <= pill.left && pill.right <= actions.left && actions.right <= window.innerWidth;
   }), true);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -353,6 +371,32 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await savedPage.waitForTimeout(500);
   assert.ok(received.slice(beforeTouch).some(parts => parts[0] === 'mouse' && parts[3] === '1'));
   assert.ok(received.slice(beforeTouch).some(parts => parts[0] === 'mouse' && parts[3] === '0'));
+  // Real touch events keep the gesture captured, including over the remote canvas.
+  const cdp = await savedContext.newCDPSession(savedPage);
+  for (const viewport of [{ width: 375, height: 667 }, { width: 667, height: 375 }]) {
+    await savedPage.setViewportSize(viewport);
+    const origin = await savedPage.locator('#keys-button').boundingBox();
+    const before = received.length;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [
+      { x: origin.x + origin.width / 2, y: origin.y + origin.height / 2 },
+    ] });
+    await savedPage.waitForTimeout(400);
+    const quick = savedPage.locator('#keys-quick');
+    assert.equal(await quick.isVisible(), true);
+    const bounds = await quick.boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= viewport.width && bounds.y + bounds.height <= viewport.height);
+    const target = await quick.locator('[data-keys="ff51"]').boundingBox();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [
+      { x: target.x + target.width / 2, y: target.y + target.height / 2 },
+    ] });
+    assert.equal(await quick.locator('[data-keys="ff51"]').getAttribute('data-selected'), 'true');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await savedPage.waitForTimeout(50);
+    assert.equal(await quick.isVisible(), false);
+    assert.equal(await savedPage.locator('#keys-palette').isVisible(), false);
+    assert.deepEqual(received.slice(before).filter(parts => parts[0] === 'key').map(parts => parts.slice(1)), [['65361', '1'], ['65361', '0']]);
+    assert.equal(received.slice(before).some(parts => parts[0] === 'mouse'), false);
+  }
   const rdpConnections = received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length;
   await savedPage.close();
   assert.equal((await (await savedContext.request.get(`http://127.0.0.1:${server.address().port}/api/status`)).json()).retained, true);
@@ -438,10 +482,9 @@ test('settings keeps close and save visible while fields scroll on small screens
     assert.deepEqual(await actions(), before);
     assert.equal(await page.locator('.settings-body').evaluate(el => el.scrollTop > 0), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await page.locator('#settings-bar-top').check();
-    assert.equal(await page.locator('#app').getAttribute('data-bar'), 'top');
   }
   await page.locator('#close-settings').click();
   await page.reload();
-  assert.equal(await page.locator('#app').getAttribute('data-bar'), 'top');
+  const bar = await page.locator('#toolbar').boundingBox();
+  assert.equal(bar.y + bar.height, page.viewportSize().height);
 });
