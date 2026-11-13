@@ -72,9 +72,11 @@ test('retains the owner after browser exit, joins it without credentials, and ex
   assert.equal(ws.extensions, 'permessage-deflate');
   ws.send(instruction('size', 2560, 850));
   await waitFor(() => received.some(parts => parts[0] === 'size' && parts[1] === '3840' && parts[2] === '1275'));
-  ws.send(instruction('', 'ping', 123) + instruction('mouse', 10, 20, 1));
+  ws.send(instruction('app-check', 'probe-123') + instruction('', 'ping', 123) + instruction('mouse', 10, 20, 1));
   await waitFor(() => received.some(parts => parts[0] === 'mouse') && messages.some(parts => parts[1] === 'ping'));
   assert.ok(!received.some(parts => parts[0] === ''));
+  await waitFor(() => messages.some(parts => parts[0] === 'app-check' && parts[1] === 'probe-123'));
+  assert.ok(!received.some(parts => parts[0] === 'app-check'));
   const reuse = new WebSocket(origin.replace('http:', 'ws:') + '/tunnel?ticket=' + ticket, 'guacamole', { origin });
   const rejected = await new Promise(resolve => reuse.on('unexpected-response', (_req, res) => { res.resume(); reuse.terminate(); resolve(res.statusCode); }).on('error', () => {}));
   assert.equal(rejected, 403);
@@ -119,6 +121,11 @@ test('retains the owner after browser exit, joins it without credentials, and ex
   const stopped = await fetch(origin + '/api/disconnect', { method: 'POST', headers: { Origin: origin, Cookie: cookie } });
   assert.equal(stopped.status, 200);
   await waitFor(() => sockets.size === 0);
+  assert.equal((await (await fetch(origin + '/api/status', { headers: { Cookie: cookie } })).json()).retained, false);
+  const resumeEnded = await fetch(origin + '/api/connect', { method: 'POST', headers: {
+    'Content-Type': 'application/json', Origin: origin, Cookie: cookie },
+    body: JSON.stringify({ resume: true, username: 'user', password: 'password', width: 640, height: 480 }) });
+  assert.equal(resumeEnded.status, 410);
   assert.equal((await (await fetch(origin + '/api/status', { headers: { Cookie: cookie } })).json()).retained, false);
 });
 

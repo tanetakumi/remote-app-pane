@@ -8,27 +8,34 @@ const Guacamole = window.Guacamole;
 export function openRemoteSession({ ticket, container, viewer, touchMode = 'relative', pointerSpeed = 1, touchSettings, pane = 0, isCurrent, onBitrate, onError, onState }) {
   let closed = false;
   let connected = false;
+  let inputEnabled = false;
+  let probe;
+  let probeSequence = 0;
   const tunnel = new Guacamole.WebSocketTunnel('/tunnel');
   const session = new Guacamole.Client(tunnel);
   const handleInstruction = tunnel.oninstruction;
   tunnel.oninstruction = (opcode, args) => {
     if (!isCurrent()) return;
-    if (opcode === 'app-bitrate') onBitrate(args[0]);
+    if (opcode === 'app-check') {
+      if (probe && args[0] === probe.id) probe.finish(true);
+    } else if (opcode === 'app-bitrate') onBitrate(args[0]);
     else handleInstruction(opcode, args);
   };
   const display = session.getDisplay();
   const element = display.getElement();
   element.tabIndex = 0;
+  element.inert = true;
   element.setAttribute('aria-label', 'リモートデスクトップへの入力');
   container.replaceChildren(element);
   element.style.cursor = 'none';
   // Discarding this element also discards Guacamole's input listeners.
   const keyboard = new Guacamole.Keyboard(element);
-  keyboard.onkeydown = keysym => { session.sendKeyEvent(1, keysym); return false; };
-  keyboard.onkeyup = keysym => session.sendKeyEvent(0, keysym);
+  keyboard.onkeydown = keysym => { if (inputEnabled) session.sendKeyEvent(1, keysym); return false; };
+  keyboard.onkeyup = keysym => { if (inputEnabled) session.sendKeyEvent(0, keysym); };
   element.addEventListener('pointerdown', () => element.focus({ preventScroll: true }));
   const sender = createMouseSender(session, display);
   const send = event => {
+    if (!inputEnabled || !connected) return;
     if (event.type === 'mousemove') sender.move(event.state);
     else sender.send(event.state);
   };
@@ -98,7 +105,7 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
   };
   session.connect(`ticket=${encodeURIComponent(ticket)}`);
   const requireConnection = () => {
-    if (closed || !isCurrent() || !connected) {
+    if (closed || !isCurrent() || !connected || !inputEnabled) {
       throw new Error('接続が切れたため送信できませんでした。');
     }
   };
@@ -109,6 +116,26 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
   const pause = () => new Promise(resolve => setTimeout(resolve, 150));
   return {
     fit,
+    setInputEnabled(value) {
+      if (inputEnabled && !value) { reset(); sender.cancel(); }
+      inputEnabled = value;
+      element.inert = !value;
+    },
+    check() {
+      if (closed || !connected) return Promise.resolve(false);
+      if (probe) return probe.promise;
+      const id = String(++probeSequence);
+      let finish;
+      const promise = new Promise(resolve => { finish = resolve; });
+      const timer = setTimeout(() => probe?.finish(false), 3000);
+      probe = { id, promise, finish(value) {
+        clearTimeout(timer);
+        probe = null;
+        finish(value);
+      } };
+      tunnel.sendMessage('app-check', id);
+      return promise;
+    },
     refreshSize: () => resizing.refresh(true),
     setPane,
     setTouchMode,
@@ -117,7 +144,7 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
     reset,
     // Presses keys in order and releases them in reverse, so Shift wraps Enter.
     sendKeys(keysyms) {
-      if (closed || !connected) return;
+      if (closed || !connected || !inputEnabled) return;
       keyboard.reset();
       for (const keysym of keysyms) session.sendKeyEvent(1, keysym);
       for (const keysym of [...keysyms].reverse()) session.sendKeyEvent(0, keysym);
@@ -144,6 +171,7 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
     },
     close() {
       closed = true;
+      probe?.finish(false);
       resizing.dispose();
       touch.dispose();
       mouse.reset();

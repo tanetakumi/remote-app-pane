@@ -378,17 +378,39 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await until(() => joins() > joined);
   await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
   assert.equal(received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length, rdpConnections);
-  // If the server is unreachable the header returns to 接続; becoming visible again rejoins.
+  // Temporary failures keep retrying without another visibility event.
   await savedPage.route('**/api/status', route => route.abort());
   joined = joins();
   await savedPage.evaluate(() => window.tunnels.at(-1).close());
-  await savedPage.waitForFunction(() => document.getElementById('connection-button').dataset.state === 'disconnected');
+  await savedPage.waitForFunction(() => document.getElementById('connection-button').dataset.state === 'reconnecting');
   await savedPage.waitForTimeout(200);
   assert.equal(joins(), joined);
   await savedPage.unroute('**/api/status');
-  await savedPage.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await until(() => joins() > joined);
   await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
+  // A healthy foreground return keeps the same socket; a silent socket is replaced.
+  joined = joins();
+  await savedPage.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('online'));
+  });
+  await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
+  assert.equal(joins(), joined);
+  const beforeCheckInput = received.length;
+  await savedPage.evaluate(() => {
+    window.tunnels.at(-1).onmessage = () => {};
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await savedPage.keyboard.press('z');
+  await savedPage.mouse.click(...await viewerCenter(savedPage));
+  assert.ok(!received.slice(beforeCheckInput).some(parts =>
+    (parts[0] === 'key' && parts[1] === '122') || (parts[0] === 'mouse' && parts[3] === '1')));
+  await until(() => joins() > joined);
+  await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '接続済み');
+  assert.equal(received.filter(parts => parts[0] === 'select' && parts[1] === 'rdp').length, rdpConnections);
+  await savedPage.mouse.click(...await viewerCenter(savedPage));
+  await savedPage.keyboard.press('z');
+  await until(() => received.slice(beforeCheckInput).some(parts => parts[0] === 'key' && parts[1] === '122' && parts[2] === '1'));
   await savedPage.locator('#connection-button').click();
   await savedPage.waitForFunction(() => document.getElementById('connection-state').textContent === '未接続');
   assert.equal((await (await savedContext.request.get(`http://127.0.0.1:${server.address().port}/api/status`)).json()).retained, false);

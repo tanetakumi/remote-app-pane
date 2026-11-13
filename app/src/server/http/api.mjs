@@ -38,6 +38,7 @@ export function createApi({ config, sessions }) {
       if (sessions.full()) return json(res, 429, { error: 'Too many pending connections.' }), true;
       const id = sessions.sessionId(req);
       const retained = sessions.has(id);
+      if (input.resume === true && !retained) return json(res, 410, { error: '保持中の接続は終了しました。' }), true;
       const username = retained ? '' : input.username || config.username;
       const password = retained ? '' : input.password || config.password;
       if ([username, password].some(value => typeof value !== 'string' || value.length > 1024)) throw new Error('Invalid credentials.');

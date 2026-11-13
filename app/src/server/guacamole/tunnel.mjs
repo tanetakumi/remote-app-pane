@@ -98,6 +98,11 @@ export function bridge(ws, config, credentials, { transport, retain = false, sel
   const downstream = new InstructionParser((parts, raw) => {
     if (parts[0] === '') { send(raw); return; } // Guacamole WebSocket tunnel pings.
     if (phase !== 'stream' || ended || !attached) return;
+    if (parts[0] === 'app-check') {
+      if (parts.length !== 2 || parts[1].length > 64) throw new Error('Invalid connection check.');
+      send(raw, false);
+      return;
+    }
     if (parts[0] === 'size') {
       if (parts.length !== 3) throw new Error('Invalid size instruction.');
       const { width, height } = rdpDimensions(Number(parts[1]), Number(parts[2]), config.settings.get().resolutionScale);

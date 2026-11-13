@@ -1,4 +1,5 @@
 import './styles.css';
+import { createConnection } from './core/connection.js';
 import { request } from './core/api.js';
 import { webpSupported } from './core/webp.js';
 import { openRemoteSession } from './core/remote-session.js';
@@ -21,25 +22,22 @@ const modeButton = $('mode-button');
 const paneButton = $('pane-button');
 let touchMode = 'relative';
 let pane = 0;
-let remote = null;
-let generation = 0;
-let active = false;
 let configuredCredentials = false;
 preserveInputLayout($('app'), $('top-bar'));
-const textInput = createTextInput((text, enter) => remote.sendText(text, enter));
+const textInput = createTextInput((text, enter) => connection.remote.sendText(text, enter));
 const specialKeys = createSpecialKeys(keysyms => {
-  remote?.sendKeys(keysyms);
-  remote?.focus();
+  connection.remote?.sendKeys(keysyms);
+  connection.remote?.focus();
 });
 const touchSettings = createSettingsDialog(settings => {
-  remote?.setPointerSpeed(settings.pointerSpeed);
-  remote?.refreshSize();
+  connection.remote?.setPointerSpeed(settings.pointerSpeed);
+  connection.remote?.refreshSize();
 });
 
 function connectionAction(label, state) {
   button.dataset.state = state;
   button.setAttribute('aria-label', label);
-  button.setAttribute('aria-pressed', String(active));
+  button.setAttribute('aria-pressed', String(connection.active));
   button.title = label;
 }
 
@@ -53,85 +51,49 @@ function showBitrate(kbps) {
   [bitrateValue.textContent, bitrateUnit.textContent] = formatBitrate(kbps);
 }
 
-function disconnect(text = '未接続', state = '') {
-  generation++;
-  remote?.close();
-  remote = null;
-  textInput.setConnected(false);
-  specialKeys.setConnected(false);
-  active = false;
-  displayContainer.replaceChildren();
-  bitrate.hidden = true;
-  showBitrate(0);
-  connectionAction('接続', 'disconnected');
-  for (const control of [modeButton, paneButton]) control.disabled = true;
-  button.disabled = false;
-  status(text, state);
-}
-async function connect(credentials = {}) {
-  const current = ++generation;
-  active = true;
-  button.disabled = true;
-  connectionAction('切断', 'connecting');
-  status('接続中…', 'connecting');
-  let lastError = '';
-  let wasConnected = false;
-  try {
-    const webp = await webpSupported;
-    if (generation !== current) return;
-    const { ticket, pointerSpeed } = await request('/api/connect', {
-      ...credentials, width: viewer.clientWidth * 2, height: viewer.clientHeight, webp,
-    });
-    credentials = null;
-    if (generation !== current) return;
-    remote = openRemoteSession({
-      ticket, container: displayContainer, viewer, touchMode, pointerSpeed, touchSettings, pane,
-      isCurrent: () => generation === current,
-      onBitrate: kbps => showBitrate(Number(kbps)),
-      onError: error => {
-        lastError = `${error.message || 'RDP 接続に失敗しました。'} (${error.code})`;
-        status(lastError, 'error');
-      },
-      onState: state => {
-        if (state === 3) {
-          wasConnected = true;
-          connectionAction('切断', 'connected');
-          status('接続済み', 'connected');
-          bitrate.hidden = false;
-          textInput.setConnected(true);
-          specialKeys.setConnected(true);
-          for (const control of [modeButton, paneButton]) control.disabled = false;
-          remote.fit();
-          remote.refreshSize();
-          remote.focus();
-        } else if (state === 5) {
-          disconnect(lastError || '切断されました', lastError ? 'error' : '');
-          // Rejoin the retained RDP once; a failure before connecting is not retried.
-          if (wasConnected) restore();
-        }
-      },
-    });
-  } catch (error) {
-    if (generation === current) disconnect(error.message, 'error');
-  } finally {
-    if (generation === current) button.disabled = false;
-  }
-}
+const connection = createConnection({
+  request,
+  visible: () => !document.hidden,
+  parameters: async () => ({ width: viewer.clientWidth * 2, height: viewer.clientHeight, webp: await webpSupported }),
+  open: options => openRemoteSession({ ...options, container: displayContainer, viewer,
+    touchMode, touchSettings, pane, onBitrate: kbps => showBitrate(Number(kbps)),
+  }),
+  onConfigured: value => { configuredCredentials = value; },
+  onState: (state, message) => {
+    const connected = state === 'connected';
+    viewer.setAttribute('aria-busy', String(state !== 'idle' && !connected));
+    connection.remote?.setInputEnabled(connected);
+    textInput.setConnected(connected);
+    specialKeys.setConnected(connected);
+    for (const control of [modeButton, paneButton]) control.disabled = !connected;
+    bitrate.hidden = !connected;
+    button.disabled = false;
+    if (connected) {
+      connectionAction('切断', 'connected');
+      status('接続済み', 'connected');
+      connection.remote?.fit();
+      connection.remote?.refreshSize();
+      connection.remote?.focus();
+    } else if (state === 'idle') {
+      displayContainer.replaceChildren();
+      showBitrate(0);
+      connectionAction('接続', 'disconnected');
+      status(message || '未接続', message ? 'error' : '');
+    } else {
+      connectionAction('切断', state === 'checking' ? 'connected' : state);
+      status(state === 'checking' ? '接続を確認中…' : state === 'connecting' ? '接続中…' : '再接続中…', 'connecting');
+    }
+  },
+});
 button.addEventListener('click', async () => {
-  if (active) {
+  if (connection.active) {
+    // Stop local recovery immediately, including when the server is unreachable.
+    connection.stop();
     button.disabled = true;
-    try {
-      await request('/api/disconnect', {});
-      disconnect();
-    } catch (error) {
-      // Still connected: show the error briefly instead of covering the desktop.
-      const current = generation;
-      status(error.message, 'error');
-      setTimeout(() => {
-        if (generation === current && button.dataset.state === 'connected') status('接続済み', 'connected');
-      }, 4000);
-    } finally { button.disabled = false; }
-  } else if (configuredCredentials) connect();
+    try { await request('/api/disconnect', {}); }
+    catch (error) { status(`サーバー側の切断を確認できませんでした: ${error.message}`, 'error'); }
+    finally { button.disabled = false; }
+  } else if (configuredCredentials) connection.connect();
   else dialog.showModal();
 });
 function toggle(button, value, label) {
@@ -142,14 +104,14 @@ function toggle(button, value, label) {
 modeButton.addEventListener('click', () => {
   touchMode = touchMode === 'relative' ? 'direct' : 'relative';
   toggle(modeButton, touchMode, touchMode === 'relative' ? 'マウス：指を滑らせてカーソル移動（タップでTapに切替）' : 'Tap：画面を直接操作（タップでマウスに切替）');
-  remote?.setTouchMode(touchMode);
-  remote?.focus();
+  connection.remote?.setTouchMode(touchMode);
+  connection.remote?.focus();
 });
 paneButton.addEventListener('click', () => {
   pane = 1 - pane;
   toggle(paneButton, pane, pane ? '右半分を表示中（タップで左半分に切替）' : '左半分を表示中（タップで右半分に切替）');
-  remote?.setPane(pane);
-  remote?.focus();
+  connection.remote?.setPane(pane);
+  connection.remote?.focus();
 });
 $('cancel').addEventListener('click', () => dialog.close());
 dialog.addEventListener('close', () => { $('password').value = ''; });
@@ -158,18 +120,15 @@ $('connect-form').addEventListener('submit', event => {
   const credentials = { username: $('username').value.trim(), password: $('password').value };
   $('password').value = '';
   dialog.close();
-  connect(credentials);
+  connection.connect(credentials);
 });
-window.addEventListener('blur', () => remote?.reset());
-window.addEventListener('pagehide', () => disconnect());
-new ResizeObserver(() => remote?.fit()).observe(viewer);
-function restore() {
-  return request('/api/status').then(result => {
-    configuredCredentials = result.configuredCredentials;
-    if (result.retained) return connect();
-  }).catch(error => status(error.message, 'error')).finally(() => { button.disabled = false; });
-}
-const rejoin = () => { if (!active) restore(); };
-window.addEventListener('pageshow', event => { if (event.persisted) rejoin(); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) rejoin(); });
-restore();
+window.addEventListener('blur', () => connection.remote?.reset());
+window.addEventListener('pagehide', () => connection.stop());
+new ResizeObserver(() => connection.remote?.fit()).observe(viewer);
+window.addEventListener('pageshow', event => { if (event.persisted) connection.restore(); });
+window.addEventListener('online', () => connection.resume());
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) connection.suspend();
+  else connection.resume();
+});
+connection.restore();

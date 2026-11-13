@@ -58,3 +58,15 @@ test('disconnect discards pending movement and stops subsequent sends', t => {
   sender.send({ x: 4, y: 4, left: true });
   assert.equal(sent.length, 1);
 });
+
+test('pausing input drops a pending move and allows fresh input after resuming', t => {
+  const { sender, sent, tick } = setup(t);
+  sender.move({ x: 1, y: 1 });
+  sender.move({ x: 2, y: 2 });
+  sender.cancel();
+  tick(100);
+  assert.deepEqual(sent.map(state => state.x), [1]);
+  sender.move({ x: 3, y: 3 });
+  sender.send({ x: 4, y: 4, left: true });
+  assert.deepEqual(sent.map(state => state.x), [1, 3, 4]);
+});

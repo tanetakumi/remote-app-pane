@@ -163,6 +163,7 @@ export function createMouseSender(session, display) {
       clearPending();
       transmit({ ...state });
     },
+    cancel: clearPending,
     dispose() {
       disposed = true;
       clearPending();
