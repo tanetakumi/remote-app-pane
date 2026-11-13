@@ -1,5 +1,5 @@
-// Keep the remote desktop sized to two panes; ignore keyboard-only height changes.
-export function observeDisplaySize(viewer, sendSize, isSuspended) {
+// Keep the remote desktop sized to two panes.
+export function observeDisplaySize(viewer, sendSize) {
   let timer;
   let forcePending = false;
   let last;
@@ -8,7 +8,6 @@ export function observeDisplaySize(viewer, sendSize, isSuspended) {
     forcePending = false;
     const width = viewer.clientWidth * 2, height = viewer.clientHeight;
     if (!width || !height) return;
-    if (isSuspended() && last && width === last.width && height !== last.height) return;
     if (!force && last && width === last.width && height === last.height) return;
     if (sendSize(width, height) !== false) last = { width, height };
   };

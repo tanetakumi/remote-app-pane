@@ -87,7 +87,7 @@ export function openRemoteSession({ ticket, container, viewer, touchMode = 'rela
   const resizing = observeDisplaySize(viewer, (width, height) => {
     if (closed || !connected || !isCurrent()) return false;
     session.sendSize(width, height);
-  }, () => document.getElementById('text-dialog').open);
+  });
   display.onresize = fit;
   session.onerror = error => { if (isCurrent()) onError(error); };
   // A dropped WebSocket must also end the session so the page learns it is disconnected.

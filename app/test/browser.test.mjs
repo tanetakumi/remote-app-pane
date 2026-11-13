@@ -240,14 +240,51 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await waitForSize(936, 953);
   await page.setViewportSize({ width: 1280, height: 900 });
   await waitForSize(3072, 1020);
-  await page.locator('#text-button').click();
-  const beforeKeyboardResize = received.filter(parts => parts[0] === 'size').length;
+  // Model Brave iOS resizing the layout viewport while its keyboard opens/closes.
+  // Both bar positions retain the viewer and canvas geometry, including after dialog.close().
+  for (const bottom of [false, true]) {
+    await page.locator('#settings-button').click();
+    await page.locator('#settings-bar-bottom').setChecked(bottom);
+    await page.locator('#close-settings').click();
+    const geometry = async () => Promise.all(['#viewer', '#top-bar', '#display canvas:first-child'].map(selector =>
+      page.locator(selector).first().boundingBox()));
+    const before = await geometry();
+    const beforeKeyboardResize = received.filter(parts => parts[0] === 'size').length;
+    await page.locator('#text-button').click();
+    await page.setViewportSize({ width: 1280, height: 750 });
+    await page.waitForTimeout(250);
+    assert.deepEqual(await geometry(), before);
+    assert.equal(received.filter(parts => parts[0] === 'size').length, beforeKeyboardResize);
+    await page.locator('#close-text').click();
+    await page.waitForTimeout(200);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(200);
+    assert.deepEqual(await geometry(), before);
+    assert.equal(received.filter(parts => parts[0] === 'size').length, beforeKeyboardResize);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.waitForTimeout(500);
+    assert.deepEqual(await geometry(), before);
+    assert.equal(received.filter(parts => parts[0] === 'size').length, beforeKeyboardResize);
+  }
+  // Ordinary height changes and width changes during input still reach the desktop.
   await page.setViewportSize({ width: 1280, height: 750 });
-  await page.waitForTimeout(250);
-  assert.equal(received.filter(parts => parts[0] === 'size').length, beforeKeyboardResize);
-  await page.locator('#close-text').click();
   await waitForSize(3072, 840);
-  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.locator('#text-button').click();
+  await page.setViewportSize({ width: 900, height: 700 });
+  await waitForSize(2160, 780);
+  await page.locator('#close-text').click();
+  await page.locator('#settings-button').click();
+  await page.locator('#settings-bar-bottom').uncheck();
+  await page.locator('#close-settings').click();
+  await page.locator('#text-button').click();
+  await page.locator('#close-text').click();
+  // A width change while settling after input releases the lock instead of re-locking.
+  const [inputHeight] = await Promise.all([
+    page.evaluate(() => new Promise(resolve => addEventListener('resize', () =>
+      resolve(document.getElementById('app').style.getPropertyValue('--input-height')), { once: true }))),
+    page.setViewportSize({ width: 1280, height: 900 }),
+  ]);
+  assert.equal(inputHeight, '');
   await waitForSize(3072, 1020);
   const beforeBurst = received.length;
   await page.evaluate(() => {
@@ -275,13 +312,14 @@ test('minimal browser UI fills the viewport, sends input, and reconnects cleanly
   await page.locator('#connection-button').click();
   await page.waitForFunction(() => document.getElementById('connection-state').textContent === '未接続');
   await page.setViewportSize({ width: 390, height: 844 });
-  assert.equal(await page.evaluate(() => {
+  // connect() just closed the credentials dialog, so the input lock is released by the next resize event.
+  await page.waitForFunction(() => {
     const header = document.getElementById('top-bar').getBoundingClientRect();
     const viewer = document.getElementById('viewer').getBoundingClientRect();
     return header.height === 50 && viewer.top === header.bottom && viewer.bottom === window.innerHeight &&
       viewer.width === window.innerWidth && document.documentElement.scrollWidth === window.innerWidth &&
       document.documentElement.scrollHeight === window.innerHeight;
-  }), true);
+  });
   await connect();
   assert.equal(await page.evaluate(() => {
     const pill = document.getElementById('bitrate-pill').getBoundingClientRect();

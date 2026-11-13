@@ -3,6 +3,7 @@ import { request } from './core/api.js';
 import { webpSupported } from './core/webp.js';
 import { openRemoteSession } from './core/remote-session.js';
 import { formatBitrate } from './core/bitrate.js';
+import { preserveInputLayout } from './core/viewport-layout.js';
 import { createTextInput } from './input/text-input.js';
 import { createSpecialKeys } from './input/special-keys.js';
 import { createSettingsDialog } from './ui/settings-dialog.js';
@@ -24,6 +25,7 @@ let remote = null;
 let generation = 0;
 let active = false;
 let configuredCredentials = false;
+preserveInputLayout($('app'), $('top-bar'));
 const textInput = createTextInput((text, enter) => remote.sendText(text, enter));
 const specialKeys = createSpecialKeys(keysyms => {
   remote?.sendKeys(keysyms);
@@ -33,7 +35,6 @@ const touchSettings = createSettingsDialog(settings => {
   remote?.setPointerSpeed(settings.pointerSpeed);
   remote?.refreshSize();
 });
-$('text-dialog').addEventListener('close', () => remote?.refreshSize());
 
 function connectionAction(label, state) {
   button.dataset.state = state;
